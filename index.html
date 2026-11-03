@@ -1061,6 +1061,24 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     var n = gw * gh, I = new Float32Array(n), P = new Float32Array(n);
     for (i = 0; i < n; i++) { I[i] = (0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2]) / 255; P[i] = mp[i * 4] / 255; }
     var q = guided(I, P, gw, gh, Math.max(2, Math.round(gw / 220)), 0.0012);
+    // fill small background islands enclosed by the person (light beards, glasses, gaps the model missed)
+    var lab = new Int32Array(n).fill(-1), stack = new Int32Array(n);
+    for (i = 0; i < n; i++) {
+      if (lab[i] !== -1 || q[i] >= 0.35) continue;
+      var sp = 0, size = 0, edge = false, ci, cx3, cy3, nb, d2;
+      stack[sp++] = i; lab[i] = i;
+      var members = [];
+      while (sp) {
+        ci = stack[--sp]; size++; members.push(ci);
+        cx3 = ci % gw; cy3 = (ci - cx3) / gw;
+        if (cx3 === 0 || cx3 === gw - 1 || cy3 === 0 || cy3 === gh - 1) edge = true;
+        for (d2 = 0; d2 < 4; d2++) {
+          nb = d2 === 0 ? (cx3 > 0 ? ci - 1 : -1) : d2 === 1 ? (cx3 < gw - 1 ? ci + 1 : -1) : d2 === 2 ? (cy3 > 0 ? ci - gw : -1) : (cy3 < gh - 1 ? ci + gw : -1);
+          if (nb >= 0 && lab[nb] === -1 && q[nb] < 0.35) { lab[nb] = i; stack[sp++] = nb; }
+        }
+      }
+      if (!edge && size < n * 0.03) members.forEach(function (m2) { q[m2] = 1; P[m2] = 1; });
+    }
     var ac = mk(gw, gh), ax = ac.getContext('2d'), ai = ax.createImageData(gw, gh), cov = 0;
     for (i = 0; i < n; i++) {
       var a = clamp((q[i] - 0.1) / 0.8, 0, 1);
