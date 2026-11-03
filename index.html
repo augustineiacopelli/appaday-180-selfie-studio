@@ -256,7 +256,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 </div>
 
 <main class="wrap">
-  <p class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Your photos stay in this tab and are never saved. Only a critique sends small copies to Claude, and the cutout runs on your device.</span></p>
+  <p class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Your photos stay in this tab and are never saved. Only Claude requests send small copies to Claude, and every edit runs on your device.</span></p>
 
   <div class="modebar">
     <div class="seg" role="group" aria-label="What are you making">
@@ -334,7 +334,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   <!-- Stage 3: Studio -->
   <section class="stage" id="st-studio" aria-labelledby="h-studio" hidden>
     <h2 id="h-studio">Step into the <em>studio</em></h2>
-    <p class="lead">Claude art directs the retouch and the edits run on your device: light, color, skin, eyes, tilt, and a portrait cutout that sets you in front of a studio backdrop. Ask for changes in plain words. Drag the photo to move it and use Zoom to frame.</p>
+    <p class="lead">Claude art directs a retouch of your real photo and the edits run on your device: light, color, skin, eyes, and tilt. Ask for changes in plain words. Drag the photo to move it and use Zoom to frame.</p>
     <div class="studio">
       <div>
         <div class="stagebox" id="stagebox">
@@ -345,7 +345,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
         <div class="strip" id="photoStrip" aria-label="Choose a photo" style="margin-top:10px;max-width:420px;margin-left:auto;margin-right:auto"></div>
       </div>
       <div class="panel">
-        <div class="group">
+        <div class="group" hidden>
           <h3>Mode</h3>
           <div class="seg" role="group" aria-label="Cutout mode">
             <button type="button" id="modeCut" aria-pressed="true">Cutout</button>
@@ -482,7 +482,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     <div class="mhead"><h2 id="setTitle">Settings</h2><button class="iconbtn" type="button" id="setClose" aria-label="Close settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="msec"><h3>Claude key</h3><div id="keyMount"></div></div>
     <div class="msec"><h3>Model</h3><p style="margin:0">The critique runs on <strong data-model-label="sonnet">Claude</strong>. The model updates automatically with the AppADay portfolio.</p></div>
-    <div class="msec"><h3>Default edge softness</h3>
+    <div class="msec"><h3>Matching set edge softness</h3>
       <div class="slider"><label for="defSoftIn">Softness</label><input type="range" id="defSoftIn" min="0" max="10" step="1" value="1"><output id="defSoftOut">1</output></div>
       <p class="hint" style="margin:4px 0 0">Higher values blend hair and shoulders more gently into the backdrop.</p>
     </div>
@@ -531,7 +531,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   var NEUTRAL = { exposure: 0, contrast: 0, shadows: 0, highlights: 0, warmth: 0, tint: 0, saturation: 0, skin: 0, underEye: 0, eyes: 0, keyAmount: 0, keySide: 'none', straighten: true };
   var RANGES = { exposure: [-1, 1], contrast: [-0.5, 0.5], shadows: [-1, 1], highlights: [-1, 1], warmth: [-1, 1], tint: [-1, 1], saturation: [-0.5, 0.5], skin: [0, 1], underEye: [0, 1], eyes: [0, 1], keyAmount: [0, 1] };
   var SLIDERS = [['exposure', 'Exposure'], ['contrast', 'Contrast'], ['shadows', 'Shadows'], ['highlights', 'Highlights'], ['warmth', 'Warmth'], ['tint', 'Tint'], ['saturation', 'Saturation'], ['skin', 'Skin'], ['underEye', 'Under eyes'], ['eyes', 'Eyes'], ['keyAmount', 'Key light']];
-  var QUICK = ['More natural', 'Warmer', 'More corporate', 'Brighter', 'Less smoothing', 'Change the backdrop color'];
+  var QUICK = ['More natural', 'Warmer', 'More corporate', 'Brighter', 'Less smoothing', 'Softer light'];
   var ACCENT = '#A63D9E';
   var MAX_PHOTOS = 10, MIN_CRIT = 3, WORK = 1600, SEND = 896;
   var LS_SESSION = 'appaday.180.session', LS_PREFS = 'appaday.180.prefs';
@@ -573,7 +573,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   var critBusy = false;
   var role = '';
   var prefs = { softness: 1 };
-  var st = { chosen: -1, mode: 'cutout', backdrop: 'studio', studioTone: 'Charcoal', solid: 'White', treatment: 'natural', autoNone: false, zoom: 1, offX: 0, offY: 0, softness: 1, preview: false,
+  var st = { chosen: -1, mode: 'none', backdrop: 'studio', studioTone: 'Charcoal', solid: 'White', treatment: 'natural', autoNone: false, zoom: 1, offX: 0, offY: 0, softness: 1, preview: false,
     recipe: Object.assign({}, NEUTRAL), history: [], notes: [], customColor: '', compare: false };
   var exportFiles = null, exportToken = 0;
   var grainTile = null, checkerTile = null;
@@ -829,8 +829,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     var g = $('scoreGrid'); clearChildren(g);
     show($('verdict'), match);
     if (match) {
-      var bdName = BACKDROPS.filter(function (b) { return b.id === crit.backdrop; })[0].label;
-      $('verdictTitle').textContent = 'Photo ' + crit.best + ' is your headshot. Suggested backdrop: ' + bdName + '.';
+      $('verdictTitle').textContent = 'Photo ' + crit.best + ' is your headshot.';
       $('verdictWhy').textContent = crit.why;
       var order = crit.photos.slice().sort(function (a, b) { return (b.n === crit.best) - (a.n === crit.best) || b.total - a.total; });
       order.forEach(function (r) { g.appendChild(scoreCard(r)); });
@@ -1320,6 +1319,13 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
       if (p.alpha) {
         var aw = p.alpha.width / W, ah = p.alpha.height / H;
         g.drawImage(p.alpha, x0 * aw, y0 * ah, bw * aw, bh * ah, 0, 0, rw, rh);
+      } else {
+        // no cutout: keep the light on the face and neck so the background gets no halo
+        g.drawImage(softMask(function (m) {
+          polyPath(m, FACE_OVAL, P, k, x0, y0); m.fill();
+          var ch = P[152], nw = f.oval.w * k * 0.5;
+          m.fillRect((ch[0] - x0) * k - nw / 2, (ch[1] - y0) * k - nw * 0.2, nw, rh);
+        }, Math.max(3, rw / 40)), 0, 0);
       }
       x.save(); x.globalCompositeOperation = 'soft-light'; x.globalAlpha = clamp(rc.keyAmount * 0.85, 0, 1);
       x.drawImage(lc, 0, 0, rw, rh, x0, y0, bw, bh); x.restore();
@@ -1527,21 +1533,19 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
       'eyes: 0 to 1, brightens the eyes slightly',
       'keySide: left, right, or none, the side of the image to add a soft key light from',
       'keyAmount: 0 to 1, strength of that key light (it also deepens the far side slightly for shape)',
-      'straighten: true or false, level a tilted head',
-      'backdrop: one of studio, office, editorial, outdoor, solid',
-      'backdropColor: a hex color such as #3f4a5c used for the studio or solid backdrop, chosen to flatter the skin tone and clothing'
+      'straighten: true or false, level a tilted head'
     ];
-    var s = 'You are a professional portrait retoucher art directing an automatic editor for a headshot. You cannot paint pixels. You choose settings, and the editor applies them on the device to this exact photo using a face map and a person cutout.\n\n' +
+    var s = 'You are a professional portrait retoucher art directing an automatic editor for a headshot. You cannot paint pixels. You choose settings, and the editor applies them on the device to this exact photo using a face map. The photo keeps its real background.\n\n' +
       'Settings (0 means no change):\n' + lines.join('\n') + '\n\n' +
       'Goal: a natural, credible professional headshot that still looks exactly like this person. Fix the real problems you see, such as exposure, a color cast, flat or harsh light, shadows under the eyes, or a tilted head. Prefer subtle values. Never comment on or guess age, race, gender, body, attractiveness, or any personal trait.\n\n' +
       (p.face ? 'Measured head tilt: ' + (p.face.roll * 180 / Math.PI).toFixed(1) + ' degrees.' : 'No face map is available for this photo, so skin, underEye, eyes, and the key light will have no effect.') +
       (note ? ' Earlier critique of this photo: ' + note : '');
     if (request) {
-      s += '\n\nCurrent settings: ' + JSON.stringify(Object.assign({}, st.recipe, { backdrop: st.backdrop, backdropColor: st.customColor || '' })) +
+      s += '\n\nCurrent settings: ' + JSON.stringify(st.recipe) +
         '\nThe person asks: ' + request.replace(/["\\]/g, '') + '\nAdjust the current settings to honor the request and keep everything else that still works.';
     }
     s += '\n\nReply with JSON only, no prose and no code fences, in exactly this shape:\n' +
-      '{"settings":{"exposure":0,"contrast":0,"shadows":0,"highlights":0,"warmth":0,"tint":0,"saturation":0,"skin":0,"underEye":0,"eyes":0,"keySide":"none","keyAmount":0,"straighten":true,"backdrop":"studio","backdropColor":"#3f4a5c"},"notes":["..."]}\n' +
+      '{"settings":{"exposure":0,"contrast":0,"shadows":0,"highlights":0,"warmth":0,"tint":0,"saturation":0,"skin":0,"underEye":0,"eyes":0,"keySide":"none","keyAmount":0,"straighten":true},"notes":["..."]}\n' +
       'notes: one to five short plain sentences, each naming one change and why.';
     return s;
   }
@@ -1582,9 +1586,6 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
       if (photos[st.chosen] !== p) return;
       pushHistory();
       st.recipe = res.recipe;
-      if (res.color) { st.customColor = res.color; st.studioTone = 'custom'; st.solid = 'custom'; }
-      if (res.backdrop && !request) st.backdrop = res.backdrop;
-      else if (res.backdrop && /backdrop|background|color|colour/i.test(request)) st.backdrop = res.backdrop;
       st.notes = res.notes;
       invalidateExports();
       $('rtStatus').textContent = request ? 'Revised. Hold Compare to see the original.' : 'Retouched. Hold Compare to see the original, or ask for changes.';
@@ -1687,7 +1688,6 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
         st.chosen = i; saveSession(); resetFraming(); invalidateExports();
         st.recipe = Object.assign({}, NEUTRAL); st.notes = []; st.history = [];
         $('rtStatus').textContent = 'New photo. Retouch with Claude to tailor it.';
-        if (st.autoNone && !p.noPerson) { st.mode = 'cutout'; st.autoNone = false; }
         renderStrip(); renderStudioControls(); ensureCutout();
       });
       s.appendChild(b);
@@ -2376,7 +2376,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     }
     disarmClear();
     photos.forEach(function (p) { URL.revokeObjectURL(p.thumb); });
-    photos = []; crit = null; st.chosen = -1; st.backdrop = 'studio'; st.mode = 'cutout'; st.treatment = 'natural';
+    photos = []; crit = null; st.chosen = -1; st.backdrop = 'studio'; st.mode = 'none'; st.treatment = 'natural';
     st.recipe = Object.assign({}, NEUTRAL); st.notes = []; st.history = []; st.customColor = ''; st.studioTone = 'Charcoal'; st.solid = 'White';
     role = ''; $('roleIn').value = '';
     $('headlineIn').value = ''; $('captionIn').value = '';
@@ -2423,12 +2423,11 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     $('toStudioBest').addEventListener('click', function () {
       if (crit && critMatches()) {
         if (st.chosen !== crit.best - 1) { st.recipe = Object.assign({}, NEUTRAL); st.notes = []; st.history = []; }
-        st.chosen = crit.best - 1; st.backdrop = crit.backdrop; resetFraming();
+        st.chosen = crit.best - 1; resetFraming();
       }
       go('studio');
     });
 
-    $('modeCut').addEventListener('click', function () { setMode('cutout'); });
     $('modeNo').addEventListener('click', function () { setMode('none'); });
     $('zoomIn').addEventListener('input', function () {
       st.zoom = Number($('zoomIn').value); $('zoomOut').textContent = st.zoom.toFixed(2) + 'x'; drawPreview();
