@@ -2388,6 +2388,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 
   // ---------- init ----------
   function init() {
+    if (/[?&]lab=1/.test(location.search)) window.__lab = { render: render, set: set, photos: photos, st: st, CROPS: CROPS, personState: personState, setCrop: setCrop };
     var pr = loadJSON(LS_PREFS);
     if (pr) {
       if (pr.v === 2 && isFinite(pr.softness)) prefs.softness = clamp(Math.round(pr.softness), 0, 10);
