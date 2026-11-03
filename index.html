@@ -183,6 +183,23 @@ input[type=range]{width:100%;height:44px;accent-color:var(--accent);background:t
 .tune[open]{padding-bottom:12px}
 .sw button.mine{box-shadow:0 0 0 2px var(--accent-hi)}
 #rtCompare{user-select:none;-webkit-user-select:none;touch-action:none}
+body.coaching{overflow:hidden}
+.coach{position:fixed;inset:0;z-index:45;background:#0b090c;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.coachbar{display:flex;align-items:center;gap:10px;padding:10px 16px}
+.coachbar h2{margin:0;font-size:1.25rem;flex:1}
+.coachstage{position:relative;flex:1;min-height:0;overflow:hidden;background:#000}
+.coachstage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.coachstage canvas{position:absolute;inset:0;width:100%;height:100%}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .18s}
+.flash.on{opacity:.85;transition:none}
+.coachbottom{padding:12px 16px 14px;display:grid;gap:10px;max-height:46dvh;overflow:auto}
+.coachtip{margin:0;font-family:var(--display);font-size:clamp(1.1rem,4.6vw,1.4rem);line-height:1.25;min-height:2.5em}
+.checks{display:flex;flex-wrap:wrap;gap:6px}
+.ck{font-size:.78rem;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid rgba(233,179,90,.6);color:var(--warn)}
+.ck.ok{border-color:rgba(95,197,154,.7);color:var(--good)}
+.coachrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.shutter{width:72px;height:72px;border-radius:50%;border:4px solid #fff;background:var(--accent);box-shadow:0 0 0 4px rgba(166,61,158,.35)}
+.shutter:active{transform:scale(.94)}
 
 /* Stage 4 */
 .exports{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin:12px 0}
@@ -250,6 +267,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     <div class="grid" id="thumbGrid"></div>
     <div class="actions">
       <button class="btn primary" type="button" id="toCritique" disabled>Critique my photos</button>
+      <button class="btn" type="button" id="coachOpen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><path d="M9 13h6M12 10v6"/></svg>Coach me through a better shot</button>
       <button class="linkbtn" type="button" id="skipCritique" disabled>Skip Critique, go to the Studio</button>
     </div>
     <p class="hint" id="addHint">Add 3 photos to unlock the critique.</p>
@@ -287,7 +305,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
           <div class="row" style="margin-top:8px"><button class="btn" type="button" data-copy="captionIn">Copy caption</button></div>
         </div>
       </div>
-      <div class="actions"><button class="btn primary" type="button" id="toStudioBest">Open the Studio with the best photo</button></div>
+      <div class="actions"><button class="btn primary" type="button" id="toStudioBest">Open the Studio with the best photo</button><button class="btn" type="button" id="coachOpen2">Reshoot with the coach</button></div>
     </div>
   </section>
 
@@ -401,6 +419,28 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     </div>
   </div>
 </div>
+<div class="coach" id="coach" role="dialog" aria-modal="true" aria-labelledby="coachTitle" hidden>
+  <div class="coachbar">
+    <h2 id="coachTitle">Reshoot coach</h2>
+    <span class="hint" id="coachCount"></span>
+    <button class="btn" type="button" id="coachDone">Done</button>
+  </div>
+  <div class="coachstage">
+    <video id="coachVideo" playsinline muted autoplay></video>
+    <canvas id="coachOverlay" aria-hidden="true"></canvas>
+    <div class="flash" id="coachFlash"></div>
+  </div>
+  <div class="coachbottom">
+    <p class="coachtip" id="coachTip" aria-live="polite">Starting the camera</p>
+    <div class="checks" id="coachChecks"></div>
+    <div class="coachrow">
+      <label class="toggle"><input type="checkbox" id="coachAuto" checked>Auto capture</label>
+      <button class="shutter" type="button" id="coachShutter" aria-label="Take the photo"></button>
+      <span style="width:120px"></span>
+    </div>
+    <div id="coachNoteBox" hidden><p class="hint" style="margin:6px 0 2px">From your critique</p><ul class="notes" id="coachNotes"></ul></div>
+  </div>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -510,16 +550,20 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
       r.readAsDataURL(b);
     });
   }
+  async function makePhoto(src) {
+    var work = fitCanvas(src, WORK);
+    var small = fitCanvas(src, SEND);
+    var blob = await canvasBlob(small, 'image/jpeg', 0.82);
+    var b64 = await blobB64(blob);
+    return { id: ++seq, work: work, b64: b64, thumb: URL.createObjectURL(blob), subj: null, blur: null };
+  }
   async function decodeFile(f) {
     var bmp;
     try { bmp = await createImageBitmap(f, { imageOrientation: 'from-image' }); }
     catch (e) { bmp = await createImageBitmap(f); }
-    var work = fitCanvas(bmp, WORK);
-    var small = fitCanvas(bmp, SEND);
+    var ph = await makePhoto(bmp);
     if (bmp.close) bmp.close();
-    var blob = await canvasBlob(small, 'image/jpeg', 0.82);
-    var b64 = await blobB64(blob);
-    return { id: ++seq, work: work, b64: b64, thumb: URL.createObjectURL(blob), seg: null, segFailed: false, subj: null, blur: null };
+    return ph;
   }
   async function addFiles(list) {
     var files = Array.prototype.slice.call(list || []);
@@ -1657,6 +1701,198 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     c.addEventListener('pointerup', end); c.addEventListener('pointercancel', end);
   }
 
+  // ---------- reshoot coach ----------
+  var coach = { stream: null, running: false, last: 0, okSince: 0, countdown: 0, timer: 0, auto: true, shots: 0, busy: false, light: null };
+  var LIGHT_C = mk(64, 80);
+  async function loadFaceVideo() {
+    if (vis.faceVid) return vis.faceVid;
+    await loadFace();
+    vis.faceVid = await vis.mp.FaceLandmarker.createFromOptions(vis.files, {
+      baseOptions: { modelAssetPath: FACE_MODEL, delegate: 'CPU' }, runningMode: 'VIDEO', numFaces: 1
+    });
+    return vis.faceVid;
+  }
+  function coachTips() {
+    var ul = $('coachNotes'); clearChildren(ul);
+    var tips = [];
+    if (crit) {
+      if (crit.why) tips.push(crit.why);
+      var low = crit.photos.slice().sort(function (a, b) { return a.total - b.total; })[0];
+      if (low && low.note) tips.push(low.note);
+    }
+    tips.forEach(function (t) { var li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
+    show($('coachNoteBox'), tips.length > 0);
+  }
+  async function openCoach() {
+    if (photos.length >= MAX_PHOTOS) { toast('The set is full at 10 photos. Remove one to add a new shot.'); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('This browser cannot open the camera here. Use Take a selfie instead.'); return; }
+    show($('coach'), true); document.body.classList.add('coaching');
+    coachTips();
+    $('coachTip').textContent = 'Starting the camera';
+    coach.shots = 0; coach.okSince = 0; coach.countdown = 0;
+    $('coachAuto').checked = coach.auto;
+    try {
+      coach.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1440 }, height: { ideal: 1920 } }, audio: false });
+    } catch (e) {
+      $('coachTip').textContent = 'The camera is blocked. Allow camera access for this page, or use Take a selfie instead.';
+      return;
+    }
+    var v = $('coachVideo'); v.srcObject = coach.stream;
+    try { await v.play(); } catch (e) { /* autoplay */ }
+    $('coachTip').textContent = 'Loading the face guide';
+    try { await withTimeout(loadFaceVideo(), LOAD_TIMEOUT); }
+    catch (e) { $('coachTip').textContent = 'The face guide could not load. You can still use the shutter button.'; return; }
+    coach.running = true;
+    requestAnimationFrame(coachLoop);
+  }
+  function closeCoach() {
+    coach.running = false; clearTimeout(coach.timer); coach.countdown = 0;
+    if (coach.stream) { coach.stream.getTracks().forEach(function (t) { t.stop(); }); coach.stream = null; }
+    $('coachVideo').srcObject = null;
+    show($('coach'), false); document.body.classList.remove('coaching');
+    if (coach.shots) {
+      renderGrid();
+      if (photos.length >= MIN_CRIT) toast(coach.shots === 1 ? 'Your new shot was added. Run the critique again to compare it.' : coach.shots + ' new shots were added. Run the critique again to compare them.');
+    }
+  }
+  function coachMetrics(L, v) {
+    var P = function (i) { return L[i]; };
+    var vw = v.videoWidth, vh = v.videoHeight;
+    var e1 = L.length > 473 ? P(468) : P(33), e2 = L.length > 473 ? P(473) : P(263);
+    var lft = e1.x <= e2.x ? e1 : e2, rgt = e1.x <= e2.x ? e2 : e1;
+    var roll = Math.atan2((rgt.y - lft.y) * vh, (rgt.x - lft.x) * vw) * 180 / Math.PI;
+    var oL = P(234), oR = P(454), nose = P(1), chin = P(152), top = P(10);
+    var faceW = Math.abs(oR.x - oL.x);
+    var midX = (oL.x + oR.x) / 2, yaw = (nose.x - midX) / (faceW || 1);
+    var eyeMidY = (lft.y + rgt.y) / 2, eyeMidX = (lft.x + rgt.x) / 2;
+    var pitch = (nose.y - eyeMidY) / ((chin.y - eyeMidY) || 1);
+    // light on each cheek, sampled from a small copy of the frame
+    var lx = LIGHT_C.getContext('2d', { willReadFrequently: true });
+    lx.drawImage(v, 0, 0, LIGHT_C.width, LIGHT_C.height);
+    var d = lx.getImageData(0, 0, LIGHT_C.width, LIGHT_C.height).data;
+    function lum(px, py) {
+      var cx = Math.round(px * LIGHT_C.width), cy = Math.round(py * LIGHT_C.height), s = 0, n = 0;
+      for (var y = cy - 2; y <= cy + 2; y++) for (var x = cx - 2; x <= cx + 2; x++) {
+        if (x < 0 || y < 0 || x >= LIGHT_C.width || y >= LIGHT_C.height) continue;
+        var i = (y * LIGHT_C.width + x) * 4; s += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; n++;
+      }
+      return n ? s / n : 0;
+    }
+    var m1 = P(61), m2 = P(291), mL = m1.x <= m2.x ? m1 : m2, mR = m1.x <= m2.x ? m2 : m1;
+    var cheekImgL = lum((lft.x + mL.x) / 2 - faceW * 0.08, (lft.y + mL.y) / 2);
+    var cheekImgR = lum((rgt.x + mR.x) / 2 + faceW * 0.08, (rgt.y + mR.y) / 2);
+    var faceLum = (cheekImgL + cheekImgR + lum(P(10).x, (P(10).y + eyeMidY) / 2)) / 3;
+    var bal = (cheekImgL - cheekImgR) / Math.max(30, (cheekImgL + cheekImgR) / 2);
+    return { roll: roll, yaw: yaw, pitch: pitch, size: faceW, cx: eyeMidX, cy: eyeMidY, faceLum: faceLum, bal: bal, top: top.y, chin: chin.y, eyes: [lft, rgt] };
+  }
+  function coachChecks(m) {
+    var c = [];
+    c.push({ id: 'level', label: 'Level', ok: Math.abs(m.roll) < 3, tip: 'Level your head so your eyes sit on the line.' });
+    c.push({ id: 'face', label: 'Facing camera', ok: Math.abs(m.yaw) < 0.09, tip: 'Turn your face square to the camera.' });
+    c.push({ id: 'height', label: 'Eye level', ok: m.pitch > 0.34 && m.pitch < 0.56, tip: m.pitch <= 0.34 ? 'Raise the phone to eye level and bring your chin forward a little.' : 'Lower the phone slightly, or lift your chin a touch.' });
+    c.push({ id: 'dist', label: 'Distance', ok: m.size > 0.28 && m.size < 0.48, tip: m.size <= 0.28 ? 'Move a little closer.' : 'Move the phone back a little.' });
+    c.push({ id: 'center', label: 'Centered', ok: Math.abs(m.cx - 0.5) < 0.07 && m.cy > 0.3 && m.cy < 0.46, tip: 'Center your face in the oval with your eyes on the line.' });
+    // the preview is mirrored, so the image left cheek is the person's right cheek
+    var light = { id: 'light', label: 'Even light', ok: true, tip: '' };
+    if (m.faceLum < 70) { light.ok = false; light.tip = 'Find more light. Face a window or a lamp.'; }
+    else if (m.faceLum > 228) { light.ok = false; light.tip = 'Too bright. Step out of direct sun or away from the lamp.'; }
+    else if (Math.abs(m.bal) > 0.28) { light.ok = false; light.tip = m.bal > 0 ? 'Turn slightly toward the light on your right so both cheeks are lit.' : 'Turn slightly toward the light on your left so both cheeks are lit.'; }
+    c.push(light);
+    return c;
+  }
+  function drawCoachOverlay(m, checks) {
+    var cv = $('coachOverlay'), v = $('coachVideo');
+    var W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+    var x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, H);
+    // map normalized video coords into the object-fit: cover box
+    var vw = v.videoWidth || 3, vh = v.videoHeight || 4, s = Math.max(W / vw, H / vh), ox = (W - vw * s) / 2, oy = (H - vh * s) / 2;
+    function X(nx) { return W - (ox + nx * vw * s); }
+    function Y(ny) { return oy + ny * vh * s; }
+    var allOk = checks && checks.every(function (c) { return c.ok; });
+    var good = 'rgba(95,197,154,0.95)', warn = 'rgba(233,179,90,0.95)';
+    x.lineWidth = 3; x.setLineDash([8, 8]); x.strokeStyle = allOk ? good : 'rgba(255,255,255,0.7)';
+    var ow = W * 0.42, oh = ow * 1.3, ocx = W / 2, ocy = Y(0.38) + oh * 0.08;
+    x.save(); x.translate(ocx, ocy); x.scale(1, oh / ow); x.beginPath(); x.arc(0, 0, ow / 2, 0, Math.PI * 2); x.restore(); x.stroke();
+    x.beginPath(); x.moveTo(W * 0.18, Y(0.38)); x.lineTo(W * 0.82, Y(0.38)); x.stroke();
+    x.setLineDash([]);
+    if (m) {
+      var lvl = checks[0].ok;
+      x.strokeStyle = lvl ? good : warn; x.lineWidth = 4;
+      x.beginPath(); x.moveTo(X(m.eyes[0].x), Y(m.eyes[0].y)); x.lineTo(X(m.eyes[1].x), Y(m.eyes[1].y)); x.stroke();
+      x.fillStyle = lvl ? good : warn;
+      m.eyes.forEach(function (e) { x.beginPath(); x.arc(X(e.x), Y(e.y), 6, 0, Math.PI * 2); x.fill(); });
+    }
+    if (coach.countdown) {
+      x.fillStyle = 'rgba(0,0,0,0.35)'; x.fillRect(0, 0, W, H);
+      x.fillStyle = '#fff'; x.font = '700 ' + Math.round(W * 0.28) + 'px Fraunces, Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.fillText(String(coach.countdown), W / 2, H / 2);
+    }
+  }
+  function renderChecks(checks) {
+    var box = $('coachChecks'); clearChildren(box);
+    checks.forEach(function (c) {
+      var s = document.createElement('span'); s.className = 'ck' + (c.ok ? ' ok' : '');
+      s.textContent = (c.ok ? '\u2713 ' : '') + c.label; box.appendChild(s);
+    });
+  }
+  function coachLoop(ts) {
+    if (!coach.running) return;
+    var v = $('coachVideo');
+    if (v.readyState >= 2 && ts - coach.last > 70 && !coach.busy) {
+      coach.last = ts;
+      var m = null, checks = null;
+      try {
+        var r = vis.faceVid.detectForVideo(v, ts);
+        if (r && r.faceLandmarks && r.faceLandmarks[0]) { m = coachMetrics(r.faceLandmarks[0], v); checks = coachChecks(m); }
+      } catch (e) { /* skip frame */ }
+      if (!checks) {
+        $('coachTip').textContent = 'Look at the camera so the guide can find your face.';
+        clearChildren($('coachChecks')); coach.okSince = 0;
+        if (coach.countdown) cancelCountdown();
+      } else {
+        renderChecks(checks);
+        var bad = checks.filter(function (c) { return !c.ok; });
+        if (bad.length) {
+          $('coachTip').textContent = bad[0].tip; coach.okSince = 0;
+          if (coach.countdown) cancelCountdown();
+        } else {
+          if (!coach.okSince) coach.okSince = ts;
+          if (!coach.countdown) $('coachTip').textContent = coach.auto ? 'Perfect. Hold still and relax your smile.' : 'Perfect. Tap the shutter when you are ready.';
+          if (coach.auto && !coach.countdown && ts - coach.okSince > 900) startCountdown();
+        }
+      }
+      drawCoachOverlay(m, checks);
+    }
+    requestAnimationFrame(coachLoop);
+  }
+  function startCountdown() {
+    coach.countdown = 3;
+    var step = function () {
+      coach.countdown--;
+      if (coach.countdown <= 0) { coach.countdown = 0; captureShot(); return; }
+      coach.timer = setTimeout(step, 800);
+    };
+    coach.timer = setTimeout(step, 800);
+  }
+  function cancelCountdown() { clearTimeout(coach.timer); coach.countdown = 0; }
+  async function captureShot() {
+    var v = $('coachVideo');
+    if (coach.busy || !v.videoWidth) return;
+    if (photos.length >= MAX_PHOTOS) { toast('The set is full at 10 photos.'); closeCoach(); return; }
+    coach.busy = true;
+    var c = mk(v.videoWidth, v.videoHeight); c.getContext('2d').drawImage(v, 0, 0);
+    var fl = $('coachFlash'); fl.classList.add('on'); setTimeout(function () { fl.classList.remove('on'); }, 180);
+    try {
+      photos.push(await makePhoto(c));
+      coach.shots++; invalidateExports();
+      $('coachTip').textContent = 'Shot ' + coach.shots + ' added as photo ' + photos.length + '. Keep going or tap Done.';
+      $('coachCount').textContent = coach.shots + (coach.shots === 1 ? ' new shot' : ' new shots');
+    } catch (e) { toast('That shot could not be saved. Try again.'); }
+    coach.okSince = 0;
+    setTimeout(function () { coach.busy = false; }, 1500);
+  }
+
   // ---------- Stage 4: export ----------
   function invalidateExports() { exportFiles = null; exportToken++; }
   async function enterExport() {
@@ -1771,6 +2007,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   function closeSettings() { show($('settingsScrim'), false); $('gearBtn').focus(); }
   function disarmClear() { clearArmed = false; clearTimeout(clearTimer); $('clearBtn').textContent = 'Clear Session'; }
   function clearSession() {
+    if (!$('coach').hidden) closeCoach();
     if (!clearArmed) {
       clearArmed = true; $('clearBtn').textContent = 'Tap again to clear everything';
       clearTimer = setTimeout(disarmClear, 4000); return;
@@ -1844,6 +2081,12 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     $('toExport').addEventListener('click', function () { go('export'); });
     $('dlAll').addEventListener('click', function () { if (exportFiles) deliver(allFiles()); });
     bindDrag();
+    $('coachOpen').addEventListener('click', openCoach);
+    $('coachOpen2').addEventListener('click', openCoach);
+    $('coachDone').addEventListener('click', closeCoach);
+    $('coachShutter').addEventListener('click', function () { cancelCountdown(); captureShot(); });
+    $('coachAuto').addEventListener('change', function () { coach.auto = $('coachAuto').checked; if (!coach.auto) cancelCountdown(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('coach').hidden) closeCoach(); });
     buildSliders();
     QUICK.forEach(function (q) {
       var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = q;
