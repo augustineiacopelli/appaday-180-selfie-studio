@@ -24,6 +24,10 @@ Portfolio: https://augustineiacopelli.github.io/appaday/
 | ID Square | 600 by 600 (badges and school IDs, not a passport photo) | selfie-studio-id-square.png |
 | Parish Directory | 1200 by 1500 | selfie-studio-parish-directory.png |
 
+## Matching sets
+
+Switch the top control from My headshot to Matching set to style a whole group at once, such as a parish directory, a staff page, or the family. Add up to 20 people with one photo each; file names become editable names on each card. Every person is cut out and face mapped on the device, then rendered with the same size, backdrop, eye line, and grade, with a zoom slider per person. Even out exposure automatically corrects each photo's own brightness from its histogram. Style the set with Claude sends the first 12 photos in one request: Claude picks one shared look (backdrop and color, contrast, skin, eyes, key light) plus per person exposure and color cast corrections, and it is told never to change anyone's natural skin tone. Download every headshot saves one PNG per person named for them, such as jane-doe-parish-directory.png, and Contact sheet puts everyone on one titled page with names for proofing.
+
 ## Privacy
 
 Photos are decoded in the browser tab and never saved to storage. Closing or reloading the tab discards them. The critique sends each photo to Claude as an 896 pixel JPEG and nothing else. The cutout runs entirely on the device. The only things saved in the browser are the critique text, the chosen photo number, the edited headline and caption, the optional role line, and the default edge softness. Clear Session in Settings removes all of it.

@@ -184,6 +184,21 @@ input[type=range]{width:100%;height:44px;accent-color:var(--accent);background:t
 .sw button.mine{box-shadow:0 0 0 2px var(--accent-hi)}
 #rtCompare{user-select:none;-webkit-user-select:none;touch-action:none}
 body.coaching{overflow:hidden}
+.modebar{margin:14px 0 0}
+.modebar .seg{max-width:420px}
+.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:14px 0}
+.person{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px;display:grid;gap:6px;min-width:0;align-content:start}
+.pframe{border-radius:10px;overflow:hidden;background:#000}
+.pcv{display:block;width:100%;height:auto}
+.pname{width:100%;border-radius:10px;border:1px solid var(--line);background:var(--surface2);padding:8px 10px;min-height:44px;font-size:.95rem}
+.pname:focus{outline:none;border-color:var(--accent-hi)}
+.slider.small{grid-template-columns:40px 1fr 42px;font-size:.78rem;gap:6px}
+.pstatus{margin:0;font-size:.76rem;color:var(--muted)}
+.pstatus.ok{color:var(--good)}
+.person .linkbtn{justify-self:start;font-size:.85rem}
+.setlook{display:grid;gap:14px;margin-top:14px}
+.seg4{max-width:100%}
+.seg4 button{font-size:.82rem}
 .coach{position:fixed;inset:0;z-index:45;background:#0b090c;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
 .coachbar{display:flex;align-items:center;gap:10px;padding:10px 16px}
 .coachbar h2{margin:0;font-size:1.25rem;flex:1}
@@ -243,6 +258,13 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 <main class="wrap">
   <p class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Your photos stay in this tab and are never saved. Only a critique sends small copies to Claude, and the cutout runs on your device.</span></p>
 
+  <div class="modebar">
+    <div class="seg" role="group" aria-label="What are you making">
+      <button type="button" id="modeOne" aria-pressed="true">My headshot</button>
+      <button type="button" id="modeSet" aria-pressed="false">Matching set</button>
+    </div>
+  </div>
+  <div id="oneWrap">
   <nav class="steps" aria-label="Steps">
     <button class="step" type="button" data-go="add"><b>1</b><span>Add</span></button>
     <button class="step" type="button" data-go="critique"><b>2</b><span>Critique</span></button>
@@ -397,6 +419,57 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     <div class="actions" style="margin-top:0"><button class="btn primary" type="button" id="dlAll" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>Download All</button><span class="hint" id="exStatus">Preparing your files</span></div>
     <div class="exports" id="exGrid"></div>
     <div class="actions"><button class="btn" type="button" data-go="studio">Back to the Studio</button></div>
+  </section>
+  </div>
+
+  <!-- Matching set -->
+  <section class="stage" id="st-set" aria-labelledby="h-set" hidden>
+    <h2 id="h-set">One look for the <em>whole group</em></h2>
+    <p class="lead">Add one photo per person for a parish directory, a staff page, or the family. Every headshot comes out with the same backdrop, crop, eye line, and grade, and each person's own exposure is evened out without touching their natural skin tone.</p>
+    <div class="card">
+      <div class="row">
+        <label class="btn primary" for="peopleIn"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M17 8v6M14 11h6"/></svg>Add people</label>
+        <span class="hint" id="peopleCount">0 of 20 people</span>
+      </div>
+      <input class="vh" type="file" id="peopleIn" accept="image/*" multiple>
+      <p class="hint" style="margin:10px 0 0">One photo per person. File names become the names on each card; edit them before you download.</p>
+    </div>
+    <p class="empty" id="peopleEmpty">No people yet.</p>
+    <div class="people" id="peopleGrid"></div>
+    <div class="card setlook">
+      <div class="group">
+        <h3>Size</h3>
+        <div class="seg seg4" role="group" aria-label="Export size">
+          <button type="button" id="sc-linkedin" aria-pressed="false">LinkedIn</button>
+          <button type="button" id="sc-instagram" aria-pressed="false">Instagram</button>
+          <button type="button" id="sc-id" aria-pressed="false">ID</button>
+          <button type="button" id="sc-parish" aria-pressed="true">Directory</button>
+        </div>
+      </div>
+      <div class="group">
+        <h3>Backdrop</h3>
+        <div class="seg" role="group" aria-label="Backdrop">
+          <button type="button" id="sb-studio" aria-pressed="true">Studio</button>
+          <button type="button" id="sb-solid" aria-pressed="false">Solid</button>
+        </div>
+        <div class="sw" id="setTones" style="margin-top:10px"></div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="setAuto" checked>Even out exposure automatically</label>
+      <div class="row">
+        <button class="btn primary" type="button" id="setStyle" disabled>Style the set with Claude</button>
+      </div>
+      <p class="status" id="setStatus" aria-live="polite"></p>
+      <ul class="notes" id="setNotes" hidden></ul>
+      <div class="err" id="setErr" hidden><p id="setErrMsg"></p><button class="btn" type="button" id="setRetry">Retry</button></div>
+    </div>
+    <div class="card setlook">
+      <div class="field"><label for="setTitle">Contact sheet title</label><input id="setTitle" type="text" maxlength="60" placeholder="Example: St. Francis Parish Council 2026" autocomplete="off"></div>
+      <div class="row">
+        <button class="btn primary" type="button" id="setDlAll" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>Download every headshot</button>
+        <button class="btn" type="button" id="setSheet" disabled>Contact sheet</button>
+      </div>
+      <p class="hint" style="margin:0">Each file is named for the person, such as jane-doe-parish-directory.png. The contact sheet puts everyone on one page with names, ready to proof.</p>
+    </div>
   </section>
 </main>
 
@@ -1002,11 +1075,13 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     p.mAnchor = matteAnchor(q, gw, gh, p.work.width / gw, p.work.height / gh);
     p.subj = null; p.blur = null;
   }
-  async function analyze(p) {
+  async function analyze(p, opts) {
+    opts = opts || {};
     if (p.analyzing) return p.analyzing;
+    var setOverlay = opts.quiet ? function () { } : setOverlayUI;
     p.analyzing = (async function () {
       var needFace = !p.faceTried;
-      var needMatte = st.mode === 'cutout' && !p.alpha && !p.noPerson && !p.matteTried;
+      var needMatte = (opts.matte || st.mode === 'cutout') && !p.alpha && !p.noPerson && !p.matteTried;
       if (!needFace && !needMatte) return;
       var first = (needMatte && !vis.matte) || (needFace && !vis.face);
       setOverlay(first ? 'Loading the on device portrait tools. The first visit downloads about 30 MB, then your browser keeps them.' : 'Studying your photo');
@@ -1027,7 +1102,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
         matteErr = e || new Error('matte');
       }));
       await Promise.all(jobs);
-      if (st.mode === 'cutout' && photos[st.chosen] === p) {
+      if (!opts.quiet && st.mode === 'cutout' && photos[st.chosen] === p) {
         if (p.noPerson) { st.mode = 'none'; st.autoNone = true; toast('No person was found in this photo, so it is shown without a cutout.'); }
         else if (matteErr) { st.mode = 'none'; toast('The cutout could not load, so the Studio switched to No Cutout mode.'); }
       }
@@ -1114,12 +1189,12 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     var a = hexRGB(h), b = hexRGB(to);
     return '#' + a.map(function (v, i) { return ('0' + Math.round(v + (b[i] - v) * t).toString(16)).slice(-2); }).join('');
   }
-  function studioTones() {
-    var list = st.customColor ? [{ key: 'custom', name: 'Claude\u2019s color', stops: [mixHex(st.customColor, '#ffffff', 0.32), st.customColor, mixHex(st.customColor, '#000000', 0.6)] }] : [];
+  function studioTones(cc) {
+    var list = cc ? [{ key: 'custom', name: 'Claude\u2019s color', stops: [mixHex(cc, '#ffffff', 0.32), cc, mixHex(cc, '#000000', 0.6)] }] : [];
     return list.concat(STUDIO_TONES.map(function (t) { return { key: t.name, name: t.name, stops: t.stops }; }));
   }
-  function solidList() {
-    var list = st.customColor ? [{ key: 'custom', name: 'Claude\u2019s color', c: st.customColor }] : [];
+  function solidList(cc) {
+    var list = cc ? [{ key: 'custom', name: 'Claude\u2019s color', c: cc }] : [];
     return list.concat(SOLIDS.map(function (s) { return { key: s.name, name: s.name, c: s.c }; }));
   }
 
@@ -1343,7 +1418,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 
   // the single renderer used by the preview and every export size
   function render(ctx, W, H, s0, crop) {
-    var p = photos[s0.chosen];
+    var p = s0.photo || photos[s0.chosen];
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
@@ -1379,7 +1454,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   function drawBackdrop(ctx, W, H, p, g, s0, rc) {
     var bd = s0.backdrop, r = Math.hypot(W, H) * 0.62, grd;
     if (bd === 'studio') {
-      var tones = studioTones(), t = tones.filter(function (x) { return x.key === s0.studioTone; })[0] || tones[0];
+      var tones = studioTones(s0.customColor), t = tones.filter(function (x) { return x.key === s0.studioTone; })[0] || tones[0];
       grd = ctx.createRadialGradient(W * 0.5, H * 0.38, 0, W * 0.5, H * 0.45, r);
       grd.addColorStop(0, t.stops[0]); grd.addColorStop(0.55, t.stops[1]); grd.addColorStop(1, t.stops[2]);
       ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
@@ -1409,7 +1484,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
       });
       grain(ctx, W, H, 0.05);
     } else {
-      var sl = solidList(), so = sl.filter(function (x) { return x.key === s0.solid; })[0] || sl[0];
+      var sl = solidList(s0.customColor), so = sl.filter(function (x) { return x.key === s0.solid; })[0] || sl[0];
       ctx.fillStyle = so.c; ctx.fillRect(0, 0, W, H);
     }
   }
@@ -1574,6 +1649,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     });
   }
   function resetFraming() { st.zoom = 1; st.offX = 0; st.offY = 0; $('zoomIn').value = '1'; $('zoomOut').textContent = '1.00x'; }
+  function setOverlayUI(msg) { setOverlay(msg); }
   function setOverlay(msg) {
     if (msg) { $('overlayMsg').textContent = msg; show($('studioOverlay'), true); }
     else show($('studioOverlay'), false);
@@ -1648,7 +1724,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     });
     var tr = $('toneRow'); clearChildren(tr);
     if (st.backdrop === 'studio' || st.backdrop === 'solid') {
-      var studio = st.backdrop === 'studio', list = studio ? studioTones() : solidList();
+      var studio = st.backdrop === 'studio', list = studio ? studioTones(st.customColor) : solidList(st.customColor);
       list.forEach(function (t) {
         var b = document.createElement('button'); b.type = 'button';
         var on = studio ? st.studioTone === t.key : st.solid === t.key;
@@ -1893,6 +1969,292 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     setTimeout(function () { coach.busy = false; }, 1500);
   }
 
+  // ---------- matching sets ----------
+  var MAX_PEOPLE = 20;
+  var set = { people: [], cropId: 'parish', backdrop: 'studio', studioTone: 'Charcoal', solid: 'White', customColor: '', look: null, auto: true, busy: false, queue: Promise.resolve(), notes: [] };
+  var personSeq = 0, setRaf = 0;
+  function setCrop() { return CROPS.filter(function (c) { return c.id === set.cropId; })[0] || CROPS[3]; }
+  function slug(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40); }
+  function autoLevels(p) {
+    if (p.levels) return p.levels;
+    var c = mk(64, 80), x = c.getContext('2d', { willReadFrequently: true });
+    x.drawImage(p.work, 0, 0, 64, 80);
+    var d = x.getImageData(0, 0, 64, 80).data, h = new Uint32Array(256), n = 0;
+    for (var i = 0; i < d.length; i += 4) { h[Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2])]++; n++; }
+    var acc = 0, p99 = 255;
+    for (var v = 0; v < 256; v++) { acc += h[v]; if (acc >= n * 0.985) { p99 = Math.max(v, 1); break; } }
+    var t = p99 / 255, target = 0.94, ev;
+    if (t < target) ev = Math.log(1 - target) / Math.log(1 - t); else ev = Math.log(t) / Math.log(target);
+    p.levels = { exposure: Math.round(clamp(Math.log(ev) / Math.LN2, -0.8, 0.8) * 100) / 100 };
+    return p.levels;
+  }
+  function personRecipe(pe) {
+    var r = Object.assign({}, NEUTRAL);
+    if (set.look) Object.assign(r, set.look);
+    var own = pe.own || (set.auto ? autoLevels(pe.photo) : null);
+    if (own) {
+      ['exposure', 'shadows', 'highlights', 'warmth', 'tint'].forEach(function (k) { if (own[k] != null) r[k] = (r[k] || 0) + own[k]; });
+    }
+    return cleanRecipe(r);
+  }
+  function personState(pe) {
+    return {
+      photo: pe.photo, mode: pe.photo.alpha ? 'cutout' : 'none', backdrop: set.backdrop, studioTone: set.studioTone, solid: set.solid,
+      customColor: set.customColor, recipe: personRecipe(pe), zoom: pe.zoom, offX: 0, offY: pe.offY || 0, preview: false, treatment: 'natural', compare: false
+    };
+  }
+  function openSetMode(on) {
+    var cur = on ? 'set' : 'one';
+    $('modeOne').setAttribute('aria-pressed', on ? 'false' : 'true');
+    $('modeSet').setAttribute('aria-pressed', on ? 'true' : 'false');
+    show($('oneWrap'), !on); show($('st-set'), on);
+    if (on) renderSet();
+    window.scrollTo(0, 0);
+    void cur;
+  }
+  async function addPeople(list) {
+    var files = Array.prototype.slice.call(list || []);
+    var room = MAX_PEOPLE - set.people.length;
+    if (room <= 0) { toast('A set holds up to 20 people.'); return; }
+    if (files.length > room) { toast('Only 20 people fit in a set. ' + (files.length - room) + ' were left out.'); files = files.slice(0, room); }
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i], pe = { id: ++personSeq, name: String(f.name || '').replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim().slice(0, 60), photo: null, zoom: 1, status: 'Reading the photo', own: null };
+      set.people.push(pe);
+      renderSet();
+      try { pe.photo = await decodeFile(f); pe.status = 'Waiting for the cutout'; }
+      catch (e) { pe.status = 'This file could not be read as a photo.'; pe.bad = true; }
+      renderSet();
+      if (pe.photo) queuePrep(pe);
+    }
+  }
+  function queuePrep(pe) {
+    set.queue = set.queue.then(function () { return prepPerson(pe); }).catch(function () { /* keep going */ });
+  }
+  async function prepPerson(pe) {
+    if (set.people.indexOf(pe) < 0 || !pe.photo) return;
+    pe.status = vis.matte && vis.face ? 'Cutting out and mapping the face' : 'Loading the on device portrait tools, about 30 MB the first time';
+    renderSet();
+    try { await withTimeout(Promise.all([loadMatte(), loadFace()]), LOAD_TIMEOUT); }
+    catch (e) { /* analyze reports what it could not do */ }
+    pe.status = 'Cutting out and mapping the face';
+    renderSet();
+    await new Promise(function (r) { setTimeout(r, 30); });
+    await analyze(pe.photo, { matte: true, quiet: true });
+    var ph = pe.photo;
+    pe.status = ph.alpha && ph.face ? 'Ready' : ph.alpha ? 'Ready. No face was mapped, so framing uses the outline.' : ph.noPerson ? 'No person was found in this photo.' : 'The cutout could not load, so this photo keeps its background.';
+    pe.ready = true;
+    renderSet();
+  }
+  function renderSet() {
+    var grid = $('peopleGrid'), crop = setCrop();
+    var existing = {};
+    Array.prototype.forEach.call(grid.children, function (el) { existing[el.getAttribute('data-id')] = el; });
+    var keep = {};
+    set.people.forEach(function (pe) {
+      var el = existing[pe.id];
+      if (!el) {
+        el = document.createElement('article'); el.className = 'person'; el.setAttribute('data-id', pe.id);
+        var fr = document.createElement('div'); fr.className = 'pframe';
+        var cv = document.createElement('canvas'); cv.className = 'pcv'; fr.appendChild(cv); el.appendChild(fr);
+        var nm = document.createElement('input'); nm.type = 'text'; nm.maxLength = 60; nm.className = 'pname'; nm.placeholder = 'Name for the file';
+        nm.setAttribute('aria-label', 'Name for this person');
+        nm.value = pe.name;
+        nm.addEventListener('input', function () { pe.name = nm.value; invalidateSet(); });
+        el.appendChild(nm);
+        var zr = document.createElement('div'); zr.className = 'slider small';
+        var zl = document.createElement('label'); zl.textContent = 'Zoom'; zl.setAttribute('for', 'pz-' + pe.id);
+        var zi = document.createElement('input'); zi.type = 'range'; zi.min = '0.7'; zi.max = '1.6'; zi.step = '0.02'; zi.value = String(pe.zoom); zi.id = 'pz-' + pe.id;
+        var zo = document.createElement('output'); zo.textContent = pe.zoom.toFixed(2) + 'x';
+        zi.addEventListener('input', function () { pe.zoom = Number(zi.value); zo.textContent = pe.zoom.toFixed(2) + 'x'; drawPerson(pe); });
+        zi.addEventListener('change', invalidateSet);
+        zr.appendChild(zl); zr.appendChild(zi); zr.appendChild(zo); el.appendChild(zr);
+        var stt = document.createElement('p'); stt.className = 'pstatus'; el.appendChild(stt);
+        var rm = document.createElement('button'); rm.type = 'button'; rm.className = 'linkbtn'; rm.textContent = 'Remove';
+        rm.addEventListener('click', function () {
+          var ix = set.people.indexOf(pe); if (ix >= 0) set.people.splice(ix, 1);
+          if (pe.photo) URL.revokeObjectURL(pe.photo.thumb);
+          invalidateSet(); renderSet();
+        });
+        el.appendChild(rm);
+        grid.appendChild(el);
+      }
+      keep[pe.id] = true;
+      el.querySelector('.pstatus').textContent = pe.status || '';
+      el.querySelector('.pstatus').classList.toggle('ok', pe.status === 'Ready');
+      var cv2 = el.querySelector('.pcv');
+      var k = 300 / Math.max(crop.w, crop.h), w = Math.round(crop.w * k), h = Math.round(crop.h * k);
+      if (cv2.width !== w || cv2.height !== h) { cv2.width = w; cv2.height = h; }
+      drawPerson(pe);
+    });
+    Array.prototype.slice.call(grid.children).forEach(function (el) { if (!keep[el.getAttribute('data-id')]) grid.removeChild(el); });
+    show($('peopleEmpty'), set.people.length === 0);
+    $('peopleCount').textContent = set.people.length + ' of ' + MAX_PEOPLE + ' people';
+    var ready = set.people.filter(function (pe) { return pe.ready; }).length;
+    $('setDlAll').disabled = !ready || set.busy;
+    $('setSheet').disabled = !ready || set.busy;
+    $('setStyle').disabled = !ready || set.busy;
+    ['linkedin', 'instagram', 'id', 'parish'].forEach(function (id) { $('sc-' + id).setAttribute('aria-pressed', set.cropId === id ? 'true' : 'false'); });
+    $('sb-studio').setAttribute('aria-pressed', set.backdrop === 'studio' ? 'true' : 'false');
+    $('sb-solid').setAttribute('aria-pressed', set.backdrop === 'solid' ? 'true' : 'false');
+    var tr = $('setTones'); clearChildren(tr);
+    var studio = set.backdrop === 'studio', list = studio ? studioTones(set.customColor) : solidList(set.customColor);
+    if (!list.some(function (t) { return t.key === (studio ? set.studioTone : set.solid); })) { if (studio) set.studioTone = list[0].key; else set.solid = list[0].key; }
+    list.forEach(function (t) {
+      var b = document.createElement('button'); b.type = 'button';
+      var on = studio ? set.studioTone === t.key : set.solid === t.key;
+      b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.setAttribute('aria-label', t.name); b.title = t.name;
+      b.style.background = studio ? 'radial-gradient(circle at 50% 40%,' + t.stops[0] + ',' + t.stops[2] + ')' : t.c;
+      if (t.key === 'custom') b.className = 'mine';
+      b.addEventListener('click', function () { if (studio) set.studioTone = t.key; else set.solid = t.key; invalidateSet(); renderSet(); });
+      tr.appendChild(b);
+    });
+    $('setAuto').checked = set.auto;
+    var ul = $('setNotes'); clearChildren(ul);
+    set.notes.forEach(function (n) { var li = document.createElement('li'); li.textContent = n; ul.appendChild(li); });
+    show(ul, set.notes.length > 0);
+  }
+  function drawPerson(pe) {
+    var el = $('peopleGrid').querySelector('[data-id="' + pe.id + '"]');
+    if (!el) return;
+    var cv = el.querySelector('.pcv'), x = cv.getContext('2d');
+    if (!pe.photo) { x.fillStyle = '#231D26'; x.fillRect(0, 0, cv.width, cv.height); return; }
+    if (!pe.ready) {
+      x.fillStyle = '#231D26'; x.fillRect(0, 0, cv.width, cv.height);
+      var t = pe.photo.work, s = Math.max(cv.width / t.width, cv.height / t.height);
+      x.globalAlpha = 0.45; x.drawImage(t, (cv.width - t.width * s) / 2, (cv.height - t.height * s) / 2, t.width * s, t.height * s); x.globalAlpha = 1;
+      return;
+    }
+    render(x, cv.width, cv.height, personState(pe), setCrop());
+  }
+  function invalidateSet() { set.files = null; }
+  function redrawSet() {
+    if (setRaf) return;
+    setRaf = requestAnimationFrame(function () { setRaf = 0; set.people.forEach(drawPerson); });
+  }
+  async function setFiles() {
+    var crop = setCrop(), used = {}, files = [];
+    for (var i = 0; i < set.people.length; i++) {
+      var pe = set.people[i];
+      if (!pe.ready) continue;
+      var c = mk(crop.w, crop.h);
+      render(c.getContext('2d'), crop.w, crop.h, personState(pe), crop);
+      var base = slug(pe.name) || 'person-' + (i + 1);
+      while (used[base]) base += '-' + (i + 1);
+      used[base] = true;
+      var blob = await canvasBlob(c, 'image/png');
+      files.push(new File([blob], base + '-' + crop.file.replace('selfie-studio-', ''), { type: 'image/png' }));
+      $('setStatus').textContent = 'Rendering ' + files.length + ' of ' + set.people.filter(function (p) { return p.ready; }).length;
+      await new Promise(function (r) { setTimeout(r, 0); });
+    }
+    $('setStatus').textContent = '';
+    return files;
+  }
+  async function contactSheet() {
+    var ready = set.people.filter(function (p) { return p.ready; }), crop = setCrop();
+    var cols = Math.min(4, Math.max(2, Math.ceil(Math.sqrt(ready.length)))), cw = 300, ch = Math.round(cw * crop.h / crop.w), lab = 46, gap = 24, pad = 40, head = 70;
+    var rows = Math.ceil(ready.length / cols);
+    var W = pad * 2 + cols * cw + (cols - 1) * gap, H = pad * 2 + head + rows * (ch + lab) + (rows - 1) * gap;
+    var c = mk(W, H), x = c.getContext('2d');
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
+    x.fillStyle = '#1a161c'; x.font = '600 30px Fraunces, Georgia, serif'; x.textBaseline = 'top';
+    x.fillText($('setTitle').value.trim() || 'Matching set', pad, pad);
+    ready.forEach(function (pe, i) {
+      var cx = pad + (i % cols) * (cw + gap), cy = pad + head + Math.floor(i / cols) * (ch + lab + gap);
+      var t = mk(cw, ch); render(t.getContext('2d'), cw, ch, personState(pe), crop);
+      x.drawImage(t, cx, cy);
+      x.fillStyle = '#1a161c'; x.font = '500 20px Instrument Sans, system-ui, sans-serif'; x.textAlign = 'center';
+      var nm = (pe.name || 'Person ' + (i + 1)).slice(0, 28);
+      x.fillText(nm, cx + cw / 2, cy + ch + 12); x.textAlign = 'left';
+    });
+    var blob = await canvasBlob(c, 'image/png');
+    var nm2 = slug($('setTitle').value) || 'matching-set';
+    return new File([blob], nm2 + '-contact-sheet.png', { type: 'image/png' });
+  }
+  function setLookPrompt(n) {
+    return 'You are art directing a matching set of ' + n + ' headshots, one per person, for a directory or staff page. The photos are labeled Person 1 to Person ' + n + '. ' +
+      'An automatic editor will cut each person out, frame every face the same way, and apply your settings on the device. You cannot paint pixels.\n\n' +
+      'Choose ONE shared look for the whole set: backdrop (studio or solid), backdropColor (a hex color that flatters this group and its clothing), and shared values for contrast (-0.5 to 0.5), saturation (-0.5 to 0.5), skin (0 to 1, edge preserving skin smoothing, keep at or under 0.4), underEye (0 to 1), eyes (0 to 1), keySide (left, right, or none), and keyAmount (0 to 1).\n\n' +
+      'Then for EACH person give only corrections that make that photo match the set: exposure (-1 to 1, stops), shadows (-1 to 1), highlights (-1 to 1), warmth (-1 to 1), and tint (-1 to 1). Use these only to fix the photo\'s own exposure and color cast so the set looks consistent. Never change or even out anyone\'s natural skin tone, and never comment on or guess age, race, gender, body, attractiveness, or any personal trait.\n\n' +
+      'Reply with JSON only, no prose and no code fences, in exactly this shape:\n' +
+      '{"look":{"backdrop":"studio","backdropColor":"#3f4a5c","contrast":0,"saturation":0,"skin":0,"underEye":0,"eyes":0,"keySide":"none","keyAmount":0},"people":[{"n":1,"exposure":0,"shadows":0,"highlights":0,"warmth":0,"tint":0}],"notes":["..."]}\n' +
+      'Include one entry in people for every person. notes: one to four short plain sentences about the shared look.';
+  }
+  async function styleSet() {
+    if (set.busy) return;
+    var ready = set.people.filter(function (p) { return p.ready; });
+    if (!ready.length) return;
+    if (!window.AppKeys) { toast('The key ring did not load. Reload the page.'); return; }
+    var key = await window.AppKeys.get();
+    if (!key) return;
+    var model = window.AppModels ? window.AppModels.id('sonnet') : '';
+    set.busy = true; renderSet();
+    show($('setErr'), false);
+    $('setStatus').textContent = 'Claude is studying the whole set.';
+    try {
+      if (!model) throw kindErr('nomodel');
+      var group = ready.slice(0, 12), content = [];
+      group.forEach(function (pe, i) {
+        content.push({ type: 'text', text: 'Person ' + (i + 1) + ':' });
+        content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: pe.photo.b64 } });
+      });
+      content.push({ type: 'text', text: setLookPrompt(group.length) });
+      var j = await callClaude(model, content, key, 1600);
+      var text = (j.content || []).filter(function (b) { return b.type === 'text'; }).map(function (b) { return b.text; }).join('\n').trim();
+      if (!text) throw kindErr('empty');
+      var t = text.replace(/```(?:json)?/gi, ''), a = t.indexOf('{'), b = t.lastIndexOf('}');
+      if (a < 0 || b <= a) throw kindErr('parse');
+      var o; try { o = JSON.parse(t.slice(a, b + 1)); } catch (e) { throw kindErr('parse'); }
+      if (!o || typeof o.look !== 'object' || !o.look) throw kindErr('parse');
+      var lk = cleanRecipe(Object.assign({}, NEUTRAL, o.look));
+      lk.skin = Math.min(lk.skin, 0.4);
+      set.look = { contrast: lk.contrast, saturation: lk.saturation, skin: lk.skin, underEye: lk.underEye, eyes: lk.eyes, keySide: lk.keySide, keyAmount: lk.keyAmount };
+      var bd = String(o.look.backdrop || '').toLowerCase();
+      if (bd === 'studio' || bd === 'solid') set.backdrop = bd;
+      var col = typeof o.look.backdropColor === 'string' && /^#[0-9a-f]{6}$/i.test(o.look.backdropColor.trim()) ? o.look.backdropColor.trim().toLowerCase() : '';
+      if (col) { set.customColor = col; set.studioTone = 'custom'; set.solid = 'custom'; }
+      (Array.isArray(o.people) ? o.people : []).forEach(function (pp) {
+        var n = Math.round(Number(pp && pp.n));
+        if (!(n >= 1 && n <= group.length)) return;
+        var c2 = cleanRecipe(pp);
+        group[n - 1].own = { exposure: c2.exposure, shadows: c2.shadows, highlights: c2.highlights, warmth: c2.warmth, tint: c2.tint };
+      });
+      set.notes = Array.isArray(o.notes) ? o.notes.filter(function (n2) { return typeof n2 === 'string' && n2.trim(); }).slice(0, 4).map(function (n2) { return n2.trim().slice(0, 180); }) : [];
+      if (ready.length > 12) set.notes.push('Claude styled the first 12 people. The rest share the look and use automatic exposure.');
+      $('setStatus').textContent = 'Styled. Every person now shares one backdrop, crop, eye line, and grade.';
+      invalidateSet();
+    } catch (e) {
+      $('setStatus').textContent = '';
+      $('setErrMsg').textContent = errorText(e); show($('setErr'), true);
+    } finally {
+      set.busy = false; renderSet();
+    }
+  }
+  async function setDownloadAll() {
+    set.busy = true; renderSet();
+    try { var files = await setFiles(); if (files.length) deliver(files); }
+    finally { set.busy = false; renderSet(); }
+  }
+  async function setDownloadSheet() {
+    set.busy = true; renderSet();
+    try { deliver([await contactSheet()]); }
+    finally { set.busy = false; renderSet(); }
+  }
+  function bindSet() {
+    $('modeOne').addEventListener('click', function () { openSetMode(false); });
+    $('modeSet').addEventListener('click', function () { openSetMode(true); });
+    $('peopleIn').addEventListener('change', function (e) { addPeople(e.target.files); e.target.value = ''; });
+    ['linkedin', 'instagram', 'id', 'parish'].forEach(function (id) {
+      $('sc-' + id).addEventListener('click', function () { set.cropId = id; invalidateSet(); renderSet(); });
+    });
+    $('sb-studio').addEventListener('click', function () { set.backdrop = 'studio'; invalidateSet(); renderSet(); });
+    $('sb-solid').addEventListener('click', function () { set.backdrop = 'solid'; invalidateSet(); renderSet(); });
+    $('setAuto').addEventListener('change', function () { set.auto = $('setAuto').checked; invalidateSet(); redrawSet(); });
+    $('setStyle').addEventListener('click', styleSet);
+    $('setRetry').addEventListener('click', function () { show($('setErr'), false); styleSet(); });
+    $('setDlAll').addEventListener('click', setDownloadAll);
+    $('setSheet').addEventListener('click', setDownloadSheet);
+  }
+
   // ---------- Stage 4: export ----------
   function invalidateExports() { exportFiles = null; exportToken++; }
   async function enterExport() {
@@ -2081,6 +2443,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     $('toExport').addEventListener('click', function () { go('export'); });
     $('dlAll').addEventListener('click', function () { if (exportFiles) deliver(allFiles()); });
     bindDrag();
+    bindSet();
     $('coachOpen').addEventListener('click', openCoach);
     $('coachOpen2').addEventListener('click', openCoach);
     $('coachDone').addEventListener('click', closeCoach);
