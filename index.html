@@ -1360,17 +1360,17 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     var W = p.work.width, H = p.work.height, src = corrected(p, rc);
     var A = feather(p.alpha, st.softness, W, H);
     // pull edge colors toward the subject so the old background does not fringe the outline
-    var S = mk(W, H), sx2 = S.getContext('2d');
-    sx2.drawImage(src, 0, 0); sx2.globalCompositeOperation = 'destination-in'; sx2.drawImage(A, 0, 0);
-    var E = upBlur(S, 6, W, H);
     var A2 = mk(W, H), a2 = A2.getContext('2d');
     a2.drawImage(A, 0, 0); a2.globalCompositeOperation = 'destination-in'; a2.drawImage(A, 0, 0); a2.drawImage(A, 0, 0);
+    var S = mk(W, H), sx2 = S.getContext('2d');
+    sx2.drawImage(src, 0, 0); sx2.globalCompositeOperation = 'destination-in'; sx2.drawImage(A2, 0, 0);
+    var E = upBlur(S, 6, W, H);
     var core = mk(W, H), cx2 = core.getContext('2d');
     cx2.drawImage(src, 0, 0); cx2.globalCompositeOperation = 'destination-in'; cx2.drawImage(A2, 0, 0);
     var c = mk(W, H), x = c.getContext('2d', { willReadFrequently: true });
     for (var i = 0; i < 4; i++) x.drawImage(E, 0, 0);
     x.drawImage(core, 0, 0);
-    x.globalCompositeOperation = 'destination-in'; x.drawImage(A, 0, 0);
+    x.globalCompositeOperation = 'destination-in'; x.drawImage(A, 0, 0); x.drawImage(A, 0, 0);
     x.globalCompositeOperation = 'source-over';
     if (warm) warmPixels(x, W, H, 0.7);
     p.subj = { key: key, canvas: c };
