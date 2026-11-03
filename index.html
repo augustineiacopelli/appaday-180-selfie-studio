@@ -150,7 +150,8 @@ h2 em{color:var(--accent-hi);font-style:italic}
 .strip button img{width:100%;height:100%;object-fit:cover;display:block}
 .strip button[aria-pressed="true"]{border-color:var(--accent-hi)}
 .strip button .dot{position:absolute;top:3px;right:3px;width:10px;height:10px;border-radius:50%;background:var(--accent);border:1.5px solid #fff}
-.panel{display:grid;gap:16px}
+.panel{display:grid;gap:16px;min-width:0}
+.group{min-width:0}
 .group h3{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;font-weight:700}
 .seg{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:3px;width:100%;max-width:340px}
 .seg button{min-height:42px;border:0;background:transparent;border-radius:9px;font-weight:600;font-size:.9rem}
@@ -170,6 +171,18 @@ input[type=range]{width:100%;height:44px;accent-color:var(--accent);background:t
 .toggle{display:flex;align-items:center;gap:10px;min-height:44px;font-weight:600;font-size:.9rem;cursor:pointer}
 .toggle input{width:22px;height:22px;accent-color:var(--accent)}
 .status{font-size:.85rem;color:var(--muted);min-height:1.3em}
+.notes{margin:4px 0 12px;padding:12px 14px 12px 30px;border-radius:12px;background:var(--accent-soft);border:1px solid rgba(217,139,209,.3);font-size:.88rem;display:grid;gap:4px}
+.quick{margin:4px 0 8px}
+.quick .chip{padding:6px 12px;font-size:.82rem}
+.quick .chip:disabled{opacity:.45}
+.askrow{display:flex;gap:8px}
+.askrow input{flex:1;min-width:0;border-radius:12px;border:1px solid var(--line);background:var(--surface2);padding:10px 12px;min-height:48px;font-size:1rem}
+.askrow input:focus{outline:none;border-color:var(--accent-hi);box-shadow:0 0 0 3px var(--accent-soft)}
+.tune{margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:0 12px}
+.tune summary{min-height:48px;display:flex;align-items:center;font-weight:600;cursor:pointer}
+.tune[open]{padding-bottom:12px}
+.sw button.mine{box-shadow:0 0 0 2px var(--accent-hi)}
+#rtCompare{user-select:none;-webkit-user-select:none;touch-action:none}
 
 /* Stage 4 */
 .exports{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin:12px 0}
@@ -281,7 +294,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   <!-- Stage 3: Studio -->
   <section class="stage" id="st-studio" aria-labelledby="h-studio" hidden>
     <h2 id="h-studio">Step into the <em>studio</em></h2>
-    <p class="lead">An on device cutout lifts you off the background and sets you in front of a studio backdrop. Drag the photo to move it and use Zoom to frame.</p>
+    <p class="lead">Claude art directs the retouch and the edits run on your device: light, color, skin, eyes, tilt, and a portrait cutout that sets you in front of a studio backdrop. Ask for changes in plain words. Drag the photo to move it and use Zoom to frame.</p>
     <div class="studio">
       <div>
         <div class="stagebox" id="stagebox">
@@ -300,6 +313,42 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
           </div>
           <p class="status" id="segStatus" aria-live="polite"></p>
         </div>
+        <div class="group" id="rtGroup">
+          <h3>Retouch with Claude</h3>
+          <div class="row">
+            <button class="btn primary" type="button" id="rtRun">Retouch with Claude</button>
+            <button class="btn" type="button" id="rtCompare" aria-label="Hold to compare with the original">Hold to compare</button>
+          </div>
+          <p class="status" id="rtStatus" aria-live="polite"></p>
+          <ul class="notes" id="rtNotes" hidden></ul>
+          <div class="err" id="rtErr" hidden><p id="rtErrMsg"></p><button class="btn" type="button" id="rtRetry">Retry</button></div>
+          <div class="chips quick" id="rtQuick"></div>
+          <div class="askrow">
+            <label class="vh" for="rtInput">Tell Claude what to change</label>
+            <input id="rtInput" type="text" maxlength="200" placeholder="Tell Claude what to change" autocomplete="off">
+            <button class="btn" type="button" id="rtSend">Send</button>
+          </div>
+          <p class="hint" id="rtFaceNote"></p>
+          <details class="tune">
+            <summary>Fine tune the settings</summary>
+            <div id="rtSliders"></div>
+            <div class="group" style="margin-top:8px">
+              <h3>Key light side</h3>
+              <div class="seg" role="group" aria-label="Key light side">
+                <button type="button" id="ks-left" aria-pressed="false">Left</button>
+                <button type="button" id="ks-none" aria-pressed="true">Off</button>
+                <button type="button" id="ks-right" aria-pressed="false">Right</button>
+              </div>
+            </div>
+            <div class="row" style="margin-top:8px">
+              <label class="toggle"><input type="checkbox" id="rtStraight" checked>Straighten head tilt</label>
+            </div>
+            <div class="row">
+              <button class="btn" type="button" id="rtUndo">Undo</button>
+              <button class="btn" type="button" id="rtReset">Reset to original</button>
+            </div>
+          </details>
+        </div>
         <div class="group" id="bdGroup">
           <h3>Backdrop</h3>
           <div class="chips" id="bdChips"></div>
@@ -312,7 +361,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
         <div class="group">
           <h3>Framing</h3>
           <div class="slider"><label for="zoomIn">Zoom</label><input type="range" id="zoomIn" min="0.6" max="2.2" step="0.01" value="1"><output id="zoomOut">1.00x</output></div>
-          <div class="slider" id="softRow"><label for="softIn">Edge softness</label><input type="range" id="softIn" min="0" max="10" step="1" value="4"><output id="softOut">4</output></div>
+          <div class="slider" id="softRow"><label for="softIn">Edge softness</label><input type="range" id="softIn" min="0" max="10" step="1" value="1"><output id="softOut">1</output></div>
           <div class="row">
             <label class="toggle" id="prevRow"><input type="checkbox" id="prevIn">Cutout Preview</label>
             <button class="btn" type="button" id="resetFrame">Reset framing</button>
@@ -343,7 +392,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     <div class="msec"><h3>Claude key</h3><div id="keyMount"></div></div>
     <div class="msec"><h3>Model</h3><p style="margin:0">The critique runs on <strong data-model-label="sonnet">Claude</strong>. The model updates automatically with the AppADay portfolio.</p></div>
     <div class="msec"><h3>Default edge softness</h3>
-      <div class="slider"><label for="defSoftIn">Softness</label><input type="range" id="defSoftIn" min="0" max="10" step="1" value="4"><output id="defSoftOut">4</output></div>
+      <div class="slider"><label for="defSoftIn">Softness</label><input type="range" id="defSoftIn" min="0" max="10" step="1" value="1"><output id="defSoftOut">1</output></div>
       <p class="hint" style="margin:4px 0 0">Higher values blend hair and shoulders more gently into the backdrop.</p>
     </div>
     <div class="msec"><h3>Session</h3>
@@ -361,8 +410,15 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   // ---------- constants ----------
   var MP_VER = '1.2.0';
   var MP_BASE = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@' + MP_VER;
-  var MP_MODEL = 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite';
-  var SEG_TIMEOUT = 15000;
+  var FACE_MODEL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task';
+  var TF_VER = '4.3.2';
+  var TF_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@' + TF_VER;
+  var MATTE_MODEL = 'Xenova/modnet';
+  var LOAD_TIMEOUT = 25000;
+  var NEUTRAL = { exposure: 0, contrast: 0, shadows: 0, highlights: 0, warmth: 0, tint: 0, saturation: 0, skin: 0, underEye: 0, eyes: 0, keyAmount: 0, keySide: 'none', straighten: true };
+  var RANGES = { exposure: [-1, 1], contrast: [-0.5, 0.5], shadows: [-1, 1], highlights: [-1, 1], warmth: [-1, 1], tint: [-1, 1], saturation: [-0.5, 0.5], skin: [0, 1], underEye: [0, 1], eyes: [0, 1], keyAmount: [0, 1] };
+  var SLIDERS = [['exposure', 'Exposure'], ['contrast', 'Contrast'], ['shadows', 'Shadows'], ['highlights', 'Highlights'], ['warmth', 'Warmth'], ['tint', 'Tint'], ['saturation', 'Saturation'], ['skin', 'Skin'], ['underEye', 'Under eyes'], ['eyes', 'Eyes'], ['keyAmount', 'Key light']];
+  var QUICK = ['More natural', 'Warmer', 'More corporate', 'Brighter', 'Less smoothing', 'Change the backdrop color'];
   var ACCENT = '#A63D9E';
   var MAX_PHOTOS = 10, MIN_CRIT = 3, WORK = 1600, SEND = 896;
   var LS_SESSION = 'appaday.180.session', LS_PREFS = 'appaday.180.prefs';
@@ -403,9 +459,9 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   var crit = null;          // { photos, best, backdrop, why, headline, caption, ids }
   var critBusy = false;
   var role = '';
-  var prefs = { softness: 4 };
-  var st = { chosen: -1, mode: 'cutout', backdrop: 'studio', studioTone: 0, solid: 0, treatment: 'natural', autoNone: false, zoom: 1, offX: 0, offY: 0, softness: 4, preview: false };
-  var seg = { state: 'idle', promise: null, model: null, lateNotice: false };
+  var prefs = { softness: 1 };
+  var st = { chosen: -1, mode: 'cutout', backdrop: 'studio', studioTone: 'Charcoal', solid: 'White', treatment: 'natural', autoNone: false, zoom: 1, offX: 0, offY: 0, softness: 1, preview: false,
+    recipe: Object.assign({}, NEUTRAL), history: [], notes: [], customColor: '', compare: false };
   var exportFiles = null, exportToken = 0;
   var grainTile = null, checkerTile = null;
   var clearArmed = false, clearTimer = 0;
@@ -433,7 +489,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
       chosen: st.chosen
     });
   }
-  function savePrefs() { saveJSON(LS_PREFS, { softness: prefs.softness, role: role }); }
+  function savePrefs() { saveJSON(LS_PREFS, { v: 2, softness: prefs.softness, role: role }); }
 
   // ---------- Stage 1: add photos ----------
   function fitCanvas(src, max) {
@@ -521,11 +577,11 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   // ---------- Stage 2: critique ----------
   var THINKING_OPTIONS = [{ type: 'between_tools' }, { type: 'disabled' }, null];
   var thinkingFor = {};
-  async function callClaude(model, content, apiKey) {
+  async function callClaude(model, content, apiKey, maxTokens) {
     var start = thinkingFor[model] != null ? thinkingFor[model] : 0;
     var lastErr = null;
     for (var i = start; i < THINKING_OPTIONS.length; i++) {
-      var body = { model: model, max_tokens: 1800, messages: [{ role: 'user', content: content }] };
+      var body = { model: model, max_tokens: maxTokens || 1800, messages: [{ role: 'user', content: content }] };
       if (THINKING_OPTIONS[i]) body.thinking = THINKING_OPTIONS[i];
       var r;
       try {
@@ -697,7 +753,10 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     var note = document.createElement('p'); note.className = 'note'; note.textContent = r.note; d.appendChild(note);
     var use = document.createElement('button'); use.type = 'button'; use.className = 'btn' + (r.n === crit.best ? ' primary' : '');
     use.textContent = 'Use This Photo';
-    use.addEventListener('click', function () { st.chosen = r.n - 1; saveSession(); resetFraming(); go('studio'); });
+    use.addEventListener('click', function () {
+      if (st.chosen !== r.n - 1) { st.recipe = Object.assign({}, NEUTRAL); st.notes = []; st.history = []; }
+      st.chosen = r.n - 1; saveSession(); resetFraming(); go('studio');
+    });
     d.appendChild(use);
     return d;
   }
@@ -723,107 +782,213 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   }
   function legacyCopy(id) { var el = $(id); el.focus(); el.select(); try { document.execCommand('copy'); } catch (e) { /* ignore */ } }
 
-  // ---------- segmentation ----------
+  // ---------- on device vision: face map and portrait matting ----------
+  var vis = { face: null, facePromise: null, faceFailed: false, matte: null, mattePromise: null, matteFailed: false, lateNotice: false };
+  var FACE_OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109];
+  var EYE_R = [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246];
+  var EYE_L = [263, 249, 390, 373, 374, 380, 381, 382, 362, 398, 384, 385, 386, 387, 388, 466];
+  var BROW_R = [70, 63, 105, 66, 107];
+  var BROW_L = [300, 293, 334, 296, 336];
+  var LIPS = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 409, 270, 269, 267, 0, 37, 39, 40, 185];
+
   function withTimeout(p, ms) {
     return Promise.race([p, new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, ms); })]);
   }
-  function loadSegmenter() {
-    if (seg.model) return Promise.resolve(seg.model);
-    if (seg.promise) return seg.promise;
-    seg.state = 'loading';
-    seg.promise = (async function () {
+  function loadFace() {
+    if (vis.face) return Promise.resolve(vis.face);
+    if (vis.facePromise) return vis.facePromise;
+    vis.facePromise = (async function () {
       var mod = await import(MP_BASE + '/vision_bundle.mjs');
       var files = await mod.FilesetResolver.forVisionTasks(MP_BASE + '/wasm');
-      var s = await mod.ImageSegmenter.createFromOptions(files, {
-        baseOptions: { modelAssetPath: MP_MODEL, delegate: 'CPU' },
-        runningMode: 'IMAGE', outputCategoryMask: false, outputConfidenceMasks: true
+      var f = await mod.FaceLandmarker.createFromOptions(files, {
+        baseOptions: { modelAssetPath: FACE_MODEL, delegate: 'CPU' }, runningMode: 'IMAGE', numFaces: 1
       });
-      seg.model = s; seg.state = 'ready';
-      return s;
+      vis.mp = mod; vis.files = files; vis.face = f; vis.faceFailed = false;
+      return f;
     })();
-    seg.promise.then(function () {
-      if (seg.lateNotice) {
-        seg.lateNotice = false;
+    vis.facePromise.catch(function () { vis.facePromise = null; vis.faceFailed = true; });
+    return vis.facePromise;
+  }
+  function loadMatte() {
+    if (vis.matte) return Promise.resolve(vis.matte);
+    if (vis.mattePromise) return vis.mattePromise;
+    vis.mattePromise = (async function () {
+      var T = await import(TF_URL);
+      if (T.env) T.env.allowLocalModels = false;
+      var model = await T.AutoModel.from_pretrained(MATTE_MODEL, { dtype: 'q8', device: 'wasm' });
+      var proc = await T.AutoProcessor.from_pretrained(MATTE_MODEL);
+      vis.matte = { T: T, model: model, proc: proc }; vis.matteFailed = false;
+      return vis.matte;
+    })();
+    vis.mattePromise.then(function () {
+      if (vis.lateNotice) {
+        vis.lateNotice = false;
         toast('The cutout finished loading. Switch to Cutout any time.');
         renderStudioControls();
       }
-    }, function () { seg.state = 'failed'; seg.promise = null; });
-    return seg.promise;
+    }, function () { vis.mattePromise = null; vis.matteFailed = true; });
+    return vis.mattePromise;
   }
-  function smooth(a, b, v) { var t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
-  function segmentPhoto(p, model) {
-    var res = model.segment(p.work);
-    var m = res && res.confidenceMasks && res.confidenceMasks[0];
-    if (!m) { if (res && res.close) res.close(); throw kindErr('nomask'); }
-    var w = m.width, h = m.height;
-    var data = new Float32Array(m.getAsFloat32Array());
-    if (res.close) res.close();
-    buildSeg(p, data, w, h);
-  }
-  function buildSeg(p, data, w, h) {
-    var alpha = mk(w, h), ax = alpha.getContext('2d');
-    var img = ax.createImageData(w, h), d = img.data;
-    var x0 = w, x1 = -1, y0 = h, y1 = -1, count = 0, i, x, y;
-    var left = new Int32Array(h).fill(-1), right = new Int32Array(h).fill(-1);
-    for (y = 0; y < h; y++) {
-      for (x = 0; x < w; x++) {
-        i = y * w + x;
-        var v = data[i];
-        d[i * 4 + 3] = Math.round(smooth(0.25, 0.75, v) * 255);
-        if (v >= 0.5) {
-          count++;
-          if (left[y] < 0) left[y] = x;
-          right[y] = x;
-          if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
-        }
-      }
+  function buildFace(lm, W, H) {
+    var P = lm.map(function (q) { return [q.x * W, q.y * H]; });
+    function centroid(ix) { var x = 0, y = 0; ix.forEach(function (i) { x += P[i][0]; y += P[i][1]; }); return [x / ix.length, y / ix.length]; }
+    function extent(ix) {
+      var a = Infinity, b = -Infinity, c = Infinity, d = -Infinity;
+      ix.forEach(function (i) { a = Math.min(a, P[i][0]); b = Math.max(b, P[i][0]); c = Math.min(c, P[i][1]); d = Math.max(d, P[i][1]); });
+      return { x0: a, x1: b, y0: c, y1: d, w: b - a, h: d - c };
     }
-    if (count < w * h * 0.02 || x1 < 0) throw kindErr('noperson');
-    ax.putImageData(img, 0, 0);
-    var H = y1 - y0 + 1, bw = x1 - x0 + 1;
-    var widths = [];
+    var e1 = P.length > 473 ? P[468] : centroid(EYE_R), e2 = P.length > 473 ? P[473] : centroid(EYE_L);
+    var lft = e1[0] <= e2[0] ? e1 : e2, rgt = e1[0] <= e2[0] ? e2 : e1;
+    return {
+      P: P, mid: [(lft[0] + rgt[0]) / 2, (lft[1] + rgt[1]) / 2],
+      roll: Math.atan2(rgt[1] - lft[1], rgt[0] - lft[0]),
+      oval: extent(FACE_OVAL), eyeW: (extent(EYE_R).w + extent(EYE_L).w) / 2,
+      eyes: [centroid(EYE_R), centroid(EYE_L)], eyeWs: [extent(EYE_R).w, extent(EYE_L).w]
+    };
+  }
+  function matteAnchor(q, w, h, sx, sy) {
+    var x0 = w, x1 = -1, y0 = h, y1 = -1, x, y;
+    var left = new Int32Array(h).fill(-1), right = new Int32Array(h).fill(-1);
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) if (q[y * w + x] >= 0.5) {
+      if (left[y] < 0) left[y] = x;
+      right[y] = x;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    if (x1 < 0) return null;
+    var H = y1 - y0 + 1, widths = [];
     for (y = y0; y <= y1; y++) widths.push(left[y] < 0 ? 0 : right[y] - left[y] + 1);
-    // find the neck: the narrowest row below the widest part of the head
-    var lo = Math.floor(H * 0.15), hi = Math.floor(H * 0.7), neck = -1;
-    var runMax = 0;
-    for (var k = 0; k < Math.min(lo, widths.length); k++) runMax = Math.max(runMax, widths[k]);
+    var lo = Math.floor(H * 0.15), hi = Math.floor(H * 0.7), neck = -1, runMax = 0, k;
+    for (k = 0; k < Math.min(lo, widths.length); k++) runMax = Math.max(runMax, widths[k]);
     for (k = lo; k < Math.min(hi, widths.length); k++) {
       runMax = Math.max(runMax, widths[k]);
       if (widths[k] > 0 && widths[k] < runMax * 0.86) {
-        // descending from the head; track the minimum until widths grow again
         var mi = k, mv = widths[k];
-        for (var q = k; q < Math.min(hi, widths.length); q++) {
-          if (widths[q] < mv) { mv = widths[q]; mi = q; }
-          if (widths[q] > mv * 1.35) break;
+        for (var q2 = k; q2 < Math.min(hi, widths.length); q2++) {
+          if (widths[q2] < mv) { mv = widths[q2]; mi = q2; }
+          if (widths[q2] > mv * 1.35) break;
         }
-        neck = mi;
-        break;
+        neck = mi; break;
       }
     }
-    var headW, eyeY, cx, cxN = 0, cxS = 0;
-    if (neck > 0) {
-      headW = 0; for (var z = 0; z < neck; z++) headW = Math.max(headW, widths[z]);
-      eyeY = y0 + neck * 0.47;
-    } else {
-      headW = bw * 0.45;
-      eyeY = y0 + headW * 0.62;
-    }
+    var headW, eyeY, z;
+    if (neck > 0) { headW = 0; for (z = 0; z < neck; z++) headW = Math.max(headW, widths[z]); eyeY = y0 + neck * 0.47; }
+    else { headW = (x1 - x0 + 1) * 0.45; eyeY = y0 + headW * 0.62; }
     headW = clamp(headW, w * 0.12, w * 0.9);
     eyeY = clamp(eyeY, y0 + headW * 0.38, y0 + headW * 0.85);
-    var headBottom = neck > 0 ? y0 + neck : Math.min(y1, y0 + headW * 1.2);
-    for (y = y0; y <= headBottom && y < h; y++) if (left[y] >= 0) { cxS += (left[y] + right[y]) / 2; cxN++; }
-    cx = cxN ? cxS / cxN : (x0 + x1) / 2;
-    var sx = p.work.width / w, sy = p.work.height / h;
-    p.seg = {
-      alpha: alpha,
-      cx: cx * sx, eyeY: eyeY * sy, headW: headW * sx,
-      bottom: (y1 + 1) * sy, grounded: y1 >= h - 4
-    };
+    var hb = neck > 0 ? y0 + neck : Math.min(y1, y0 + headW * 1.2), cs = 0, cn = 0;
+    for (y = y0; y <= hb && y < h; y++) if (left[y] >= 0) { cs += (left[y] + right[y]) / 2; cn++; }
+    return { cx: (cn ? cs / cn : (x0 + x1) / 2) * sx, eyeY: eyeY * sy, headW: headW * sx, bottom: (y1 + 1) * sy, grounded: y1 >= h - 4 };
+  }
+  function anchorFor(p) {
+    var W = p.work.width, H = p.work.height, m = p.mAnchor;
+    if (p.face) {
+      return { cx: p.face.mid[0], eyeY: p.face.mid[1], headW: Math.max(p.face.oval.w * 1.18, W * 0.08), bottom: m ? m.bottom : H, grounded: m ? m.grounded : true };
+    }
+    if (m) return m;
+    return { cx: W / 2, eyeY: H * 0.4, headW: Math.min(W, H) * 0.38, bottom: H, grounded: true };
+  }
+
+  // edge aware guided filter (He et al.), used for matte refinement and skin smoothing
+  var preBuf = new Float64Array(2100);
+  function boxMean(src, w, h, r) {
+    var tmp = new Float32Array(w * h), out = new Float32Array(w * h), x, y, lo, hi, row;
+    if (preBuf.length < Math.max(w, h) + 1) preBuf = new Float64Array(Math.max(w, h) + 1);
+    var pre = preBuf;
+    for (y = 0; y < h; y++) {
+      row = y * w; pre[0] = 0;
+      for (x = 0; x < w; x++) pre[x + 1] = pre[x] + src[row + x];
+      for (x = 0; x < w; x++) { lo = x - r < 0 ? 0 : x - r; hi = x + r + 1 > w ? w : x + r + 1; tmp[row + x] = (pre[hi] - pre[lo]) / (hi - lo); }
+    }
+    for (x = 0; x < w; x++) {
+      pre[0] = 0;
+      for (y = 0; y < h; y++) pre[y + 1] = pre[y] + tmp[y * w + x];
+      for (y = 0; y < h; y++) { lo = y - r < 0 ? 0 : y - r; hi = y + r + 1 > h ? h : y + r + 1; out[y * w + x] = (pre[hi] - pre[lo]) / (hi - lo); }
+    }
+    return out;
+  }
+  function guided(I, P, w, h, r, eps) {
+    var n = w * h, i, same = I === P;
+    var II = new Float32Array(n), IP = same ? II : new Float32Array(n);
+    for (i = 0; i < n; i++) { II[i] = I[i] * I[i]; if (!same) IP[i] = I[i] * P[i]; }
+    var mI = boxMean(I, w, h, r), mP = same ? mI : boxMean(P, w, h, r);
+    var mII = boxMean(II, w, h, r), mIP = same ? mII : boxMean(IP, w, h, r);
+    var A = new Float32Array(n), B = new Float32Array(n);
+    for (i = 0; i < n; i++) {
+      var v = mII[i] - mI[i] * mI[i];
+      A[i] = (mIP[i] - mI[i] * mP[i]) / (v + eps); B[i] = mP[i] - A[i] * mI[i];
+    }
+    var mA = boxMean(A, w, h, r), mB = boxMean(B, w, h, r), q = new Float32Array(n);
+    for (i = 0; i < n; i++) q[i] = mA[i] * I[i] + mB[i];
+    return q;
+  }
+  async function runMatte(p) {
+    var M = vis.matte, T = M.T, i;
+    var inp = await M.proc(T.RawImage.fromCanvas(p.work));
+    var res = await M.model({ input: inp.pixel_values });
+    var o = res.output || res[Object.keys(res)[0]];
+    var mh = o.dims[o.dims.length - 2], mw = o.dims[o.dims.length - 1], d = o.data;
+    var mc = mk(mw, mh), mcx = mc.getContext('2d'), mi = mcx.createImageData(mw, mh);
+    for (i = 0; i < mw * mh; i++) {
+      var v = Math.round(clamp(d[i], 0, 1) * 255);
+      mi.data[i * 4] = mi.data[i * 4 + 1] = mi.data[i * 4 + 2] = v; mi.data[i * 4 + 3] = 255;
+    }
+    mcx.putImageData(mi, 0, 0);
+    // refine against the photo itself so the edge follows hair and shoulders
+    var k = Math.min(1, 1024 / Math.max(p.work.width, p.work.height));
+    var gw = Math.round(p.work.width * k), gh = Math.round(p.work.height * k);
+    var gc = mk(gw, gh), gx = gc.getContext('2d', { willReadFrequently: true });
+    gx.imageSmoothingEnabled = true; gx.imageSmoothingQuality = 'high';
+    gx.drawImage(p.work, 0, 0, gw, gh);
+    var px = gx.getImageData(0, 0, gw, gh).data;
+    gx.clearRect(0, 0, gw, gh); gx.drawImage(mc, 0, 0, gw, gh);
+    var mp = gx.getImageData(0, 0, gw, gh).data;
+    var n = gw * gh, I = new Float32Array(n), P = new Float32Array(n);
+    for (i = 0; i < n; i++) { I[i] = (0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2]) / 255; P[i] = mp[i * 4] / 255; }
+    var q = guided(I, P, gw, gh, Math.max(2, Math.round(gw / 220)), 0.0012);
+    var ac = mk(gw, gh), ax = ac.getContext('2d'), ai = ax.createImageData(gw, gh), cov = 0;
+    for (i = 0; i < n; i++) {
+      var a = clamp((q[i] - 0.03) / 0.94, 0, 1);
+      if (P[i] > 0.97) a = Math.max(a, P[i]); else if (P[i] < 0.02) a = Math.min(a, P[i] * 4);
+      q[i] = a; ai.data[i * 4 + 3] = Math.round(a * 255);
+      if (a > 0.5) cov++;
+    }
+    ax.putImageData(ai, 0, 0);
+    if (cov < n * 0.02) { p.noPerson = true; return; }
+    p.alpha = ac;
+    p.mAnchor = matteAnchor(q, gw, gh, p.work.width / gw, p.work.height / gh);
     p.subj = null; p.blur = null;
   }
-  function fallbackAnchor(p) {
-    var w = p.work.width, h = p.work.height;
-    return { cx: w / 2, eyeY: h * 0.4, headW: Math.min(w, h) * 0.38, bottom: h, grounded: true };
+  async function analyze(p) {
+    if (p.analyzing) return p.analyzing;
+    p.analyzing = (async function () {
+      var needFace = !p.faceTried;
+      var needMatte = st.mode === 'cutout' && !p.alpha && !p.noPerson && !p.matteTried;
+      if (!needFace && !needMatte) return;
+      var first = (needMatte && !vis.matte) || (needFace && !vis.face);
+      setOverlay(first ? 'Loading the on device portrait tools. The first visit downloads about 30 MB, then your browser keeps them.' : 'Studying your photo');
+      var jobs = [], matteErr = null;
+      if (needFace) jobs.push(withTimeout(loadFace(), LOAD_TIMEOUT).then(function (f) {
+        p.faceTried = true;
+        try {
+          var r = f.detect(p.work);
+          if (r && r.faceLandmarks && r.faceLandmarks[0]) p.face = buildFace(r.faceLandmarks[0], p.work.width, p.work.height);
+        } catch (e) { /* no face map */ }
+        p.corr = {}; p.subj = null;
+      }, function (e) { if (!(e && e.message === 'timeout')) p.faceTried = true; }));
+      if (needMatte) jobs.push(withTimeout(loadMatte(), LOAD_TIMEOUT).then(function () {
+        setOverlay('Cutting you out of the background');
+        return new Promise(function (r) { setTimeout(r, 40); }).then(function () { p.matteTried = true; return runMatte(p); });
+      }).catch(function (e) {
+        if (e && e.message === 'timeout') vis.lateNotice = true; else p.matteTried = true;
+        matteErr = e || new Error('matte');
+      }));
+      await Promise.all(jobs);
+      if (st.mode === 'cutout' && photos[st.chosen] === p) {
+        if (p.noPerson) { st.mode = 'none'; st.autoNone = true; toast('No person was found in this photo, so it is shown without a cutout.'); }
+        else if (matteErr) { st.mode = 'none'; toast('The cutout could not load, so the Studio switched to No Cutout mode.'); }
+      }
+    })();
+    try { await p.analyzing; } finally { p.analyzing = null; }
   }
 
   // ---------- rendering helpers ----------
@@ -837,19 +1002,20 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     sx.drawImage(mid, 0, 0, w, h);
     return sm;
   }
+  function upBlur(c, f, W, H) {
+    var s = downBlur(c, f), o = mk(W || c.width, H || c.height), ox = o.getContext('2d');
+    ox.imageSmoothingEnabled = true; ox.imageSmoothingQuality = 'high';
+    ox.drawImage(s, 0, 0, o.width, o.height);
+    return o;
+  }
   function feather(alpha, soft, W, H) {
-    var out = mk(W, H), o = out.getContext('2d');
-    o.imageSmoothingEnabled = true; o.imageSmoothingQuality = 'high';
-    if (soft <= 0) { o.drawImage(alpha, 0, 0, W, H); return out; }
-    var f = 1 + soft * 1.15;
-    var small = mk(W / (f * 2), H / (f * 2)), s = small.getContext('2d');
-    s.imageSmoothingEnabled = true; s.imageSmoothingQuality = 'high';
-    s.drawImage(alpha, 0, 0, small.width, small.height);
-    var mid = mk(W / 2, H / 2), m = mid.getContext('2d');
-    m.imageSmoothingEnabled = true; m.imageSmoothingQuality = 'high';
-    m.drawImage(small, 0, 0, mid.width, mid.height);
-    o.drawImage(mid, 0, 0, W, H);
-    return out;
+    if (soft <= 0) {
+      var out = mk(W, H), o = out.getContext('2d');
+      o.imageSmoothingEnabled = true; o.imageSmoothingQuality = 'high';
+      o.drawImage(alpha, 0, 0, W, H);
+      return out;
+    }
+    return upBlur(alpha, 1 + soft * 0.55, W, H);
   }
   function warmPixels(ctx, w, h, amt) {
     var im = ctx.getImageData(0, 0, w, h), d = im.data;
@@ -899,53 +1065,221 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     }
     ctx.fillStyle = ctx.createPattern(checkerTile, 'repeat'); ctx.fillRect(0, 0, W, H);
   }
-  function subjectFor(p, warm) {
-    var key = st.softness + '|' + (warm ? 'w' : 'n');
-    if (p.subj && p.subj.key === key) return p.subj.canvas;
-    var W = p.work.width, H = p.work.height;
-    var c = mk(W, H), x = c.getContext('2d');
+  function hexRGB(h) { var n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  function mixHex(h, to, t) {
+    var a = hexRGB(h), b = hexRGB(to);
+    return '#' + a.map(function (v, i) { return ('0' + Math.round(v + (b[i] - v) * t).toString(16)).slice(-2); }).join('');
+  }
+  function studioTones() {
+    var list = st.customColor ? [{ key: 'custom', name: 'Claude\u2019s color', stops: [mixHex(st.customColor, '#ffffff', 0.32), st.customColor, mixHex(st.customColor, '#000000', 0.6)] }] : [];
+    return list.concat(STUDIO_TONES.map(function (t) { return { key: t.name, name: t.name, stops: t.stops }; }));
+  }
+  function solidList() {
+    var list = st.customColor ? [{ key: 'custom', name: 'Claude\u2019s color', c: st.customColor }] : [];
+    return list.concat(SOLIDS.map(function (s) { return { key: s.name, name: s.name, c: s.c }; }));
+  }
+
+  // ---------- recipe: Claude's settings applied on device ----------
+  function isToneNeutral(rc) { return !rc.exposure && !rc.contrast && !rc.shadows && !rc.highlights && !rc.warmth && !rc.tint && !rc.saturation; }
+  function buildLUT(rc) {
+    var lut = new Float32Array(256), ev = Math.pow(2, rc.exposure);
+    for (var v = 0; v < 256; v++) {
+      var t = v / 255;
+      t = ev >= 1 ? 1 - Math.pow(1 - t, ev) : Math.pow(t, 1 / ev);
+      t += rc.shadows * 0.2 * (t * (1 - t) * (1 - t) * 6.75);
+      t += rc.highlights * 0.2 * (t * t * (1 - t) * 6.75);
+      t = 0.5 + (t - 0.5) * (1 + rc.contrast);
+      lut[v] = clamp(t, 0, 1) * 255;
+    }
+    return lut;
+  }
+  function toneMap(x, W, H, rc) {
+    if (isToneNeutral(rc)) return;
+    var im = x.getImageData(0, 0, W, H), d = im.data, lut = buildLUT(rc);
+    var wr = 1 + 0.08 * rc.warmth, wb = 1 - 0.08 * rc.warmth, tg = 1 - 0.05 * rc.tint, sat = 1 + rc.saturation;
+    for (var i = 0; i < d.length; i += 4) {
+      var r = lut[d[i]] * wr, g = lut[d[i + 1]] * tg, b = lut[d[i + 2]] * wb;
+      if (sat !== 1) { var l = 0.299 * r + 0.587 * g + 0.114 * b; r = l + (r - l) * sat; g = l + (g - l) * sat; b = l + (b - l) * sat; }
+      d[i] = r; d[i + 1] = g; d[i + 2] = b;
+    }
+    x.putImageData(im, 0, 0);
+  }
+  function pixelCopy(src, fn) {
+    var c = mk(src.width, src.height), x = c.getContext('2d', { willReadFrequently: true });
+    x.drawImage(src, 0, 0);
+    var im = x.getImageData(0, 0, c.width, c.height), d = im.data;
+    for (var i = 0; i < d.length; i += 4) fn(d, i);
+    x.putImageData(im, 0, 0);
+    return c;
+  }
+  function polyPath(ctx, idx, P, k, ox, oy, close) {
+    ctx.beginPath();
+    idx.forEach(function (i, j) { var X = (P[i][0] - ox) * k, Y = (P[i][1] - oy) * k; if (j) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); });
+    if (close !== false) ctx.closePath();
+  }
+  function ovalFill(ctx, cx, cy, rx, ry) {
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(1, ry / rx);
+    ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.restore(); ctx.fill();
+  }
+  function localRetouch(x, p, rc) {
+    var f = p.face, P = f.P, W = p.work.width, H = p.work.height;
+    var pad = f.oval.w * 0.28;
+    var x0 = Math.max(0, Math.floor(f.oval.x0 - pad)), y0 = Math.max(0, Math.floor(f.oval.y0 - pad));
+    var x1 = Math.min(W, Math.ceil(f.oval.x1 + pad)), y1 = Math.min(H, Math.ceil(f.oval.y1 + pad));
+    var bw = x1 - x0, bh = y1 - y0;
+    if (bw < 24 || bh < 24) return;
+    var k = Math.min(1, 560 / Math.max(bw, bh)), rw = Math.round(bw * k), rh = Math.round(bh * k);
+    var src = mk(rw, rh), sx = src.getContext('2d', { willReadFrequently: true });
+    sx.imageSmoothingEnabled = true; sx.imageSmoothingQuality = 'high';
+    sx.drawImage(x.canvas, x0, y0, bw, bh, 0, 0, rw, rh);
+    var eyeW = f.eyeW * k;
+    function softMask(draw, blur) {
+      var m = mk(rw, rh), mx = m.getContext('2d');
+      mx.fillStyle = '#fff'; mx.strokeStyle = '#fff'; mx.lineJoin = 'round'; mx.lineCap = 'round';
+      draw(mx);
+      return blur > 1 ? upBlur(m, blur) : m;
+    }
+    function layer(mask, edit, alpha) {
+      if (alpha <= 0.001) return;
+      var t = mk(rw, rh), tx = t.getContext('2d');
+      tx.drawImage(edit, 0, 0); tx.globalCompositeOperation = 'destination-in'; tx.drawImage(mask, 0, 0);
+      x.save(); x.globalAlpha = clamp(alpha, 0, 1); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+      x.drawImage(t, 0, 0, rw, rh, x0, y0, bw, bh); x.restore();
+    }
+    if (rc.skin > 0) {
+      var id = sx.getImageData(0, 0, rw, rh), d = id.data, n = rw * rh, i, c;
+      var out = sx.createImageData(rw, rh), od = out.data, r = Math.max(2, Math.round(rw / 42));
+      for (c = 0; c < 3; c++) {
+        var ch = new Float32Array(n);
+        for (i = 0; i < n; i++) ch[i] = d[i * 4 + c] / 255;
+        var q = guided(ch, ch, rw, rh, r, 0.0025);
+        for (i = 0; i < n; i++) od[i * 4 + c] = q[i] * 255;
+      }
+      for (i = 0; i < n; i++) od[i * 4 + 3] = 255;
+      var sm = mk(rw, rh); sm.getContext('2d').putImageData(out, 0, 0);
+      var skinMask = softMask(function (m) {
+        polyPath(m, FACE_OVAL, P, k, x0, y0); m.fill();
+        m.globalCompositeOperation = 'destination-out';
+        [EYE_R, EYE_L, LIPS].forEach(function (ix) { polyPath(m, ix, P, k, x0, y0); m.fill(); m.lineWidth = eyeW * 0.35; m.stroke(); });
+        [BROW_R, BROW_L].forEach(function (ix) { polyPath(m, ix, P, k, x0, y0, false); m.lineWidth = eyeW * 0.45; m.stroke(); });
+      }, Math.max(2, rw / 90));
+      layer(skinMask, sm, rc.skin * 0.8);
+    }
+    if (rc.underEye > 0) {
+      var ue = softMask(function (m) {
+        f.eyes.forEach(function (c2, j) {
+          var w2 = f.eyeWs[j] * k;
+          ovalFill(m, (c2[0] - x0) * k, (c2[1] - y0) * k + w2 * 0.55, w2 * 0.55, w2 * 0.26);
+        });
+      }, Math.max(2, eyeW / 3));
+      var lift = pixelCopy(src, function (dd, i2) {
+        dd[i2] += (255 - dd[i2]) * 0.17; dd[i2 + 1] += (255 - dd[i2 + 1]) * 0.15; dd[i2 + 2] += (255 - dd[i2 + 2]) * 0.12;
+      });
+      layer(ue, lift, rc.underEye * 0.85);
+    }
+    if (rc.eyes > 0) {
+      var em = softMask(function (m) { [EYE_R, EYE_L].forEach(function (ix) { polyPath(m, ix, P, k, x0, y0); m.fill(); }); }, Math.max(1.5, eyeW / 10));
+      var eb = pixelCopy(src, function (dd, i2) {
+        for (var c3 = 0; c3 < 3; c3++) dd[i2 + c3] = 128 + (dd[i2 + c3] - 128) * 1.18 + 12;
+      });
+      layer(em, eb, rc.eyes * 0.7);
+    }
+    if (rc.keySide !== 'none' && rc.keyAmount > 0) {
+      var lc = mk(rw, rh), g = lc.getContext('2d'), left = rc.keySide === 'left';
+      var cx = left ? rw * 0.1 : rw * 0.9, cy = rh * 0.3, R = Math.max(rw, rh) * 0.9;
+      var gr = g.createRadialGradient(cx, cy, 0, cx, cy, R);
+      gr.addColorStop(0, 'rgba(255,246,232,1)'); gr.addColorStop(0.55, 'rgba(255,240,222,0.4)'); gr.addColorStop(1, 'rgba(255,240,222,0)');
+      g.fillStyle = gr; g.fillRect(0, 0, rw, rh);
+      var sxp = left ? rw * 0.95 : rw * 0.05;
+      var gs = g.createRadialGradient(sxp, rh * 0.55, 0, sxp, rh * 0.55, R * 0.7);
+      gs.addColorStop(0, 'rgba(0,0,0,0.55)'); gs.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gs; g.fillRect(0, 0, rw, rh);
+      g.globalCompositeOperation = 'destination-in';
+      var fall = g.createRadialGradient(rw / 2, rh / 2, Math.min(rw, rh) * 0.25, rw / 2, rh / 2, Math.min(rw, rh) * 0.5);
+      fall.addColorStop(0, 'rgba(0,0,0,1)'); fall.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = fall; g.fillRect(0, 0, rw, rh);
+      if (p.alpha) {
+        var aw = p.alpha.width / W, ah = p.alpha.height / H;
+        g.drawImage(p.alpha, x0 * aw, y0 * ah, bw * aw, bh * ah, 0, 0, rw, rh);
+      }
+      x.save(); x.globalCompositeOperation = 'soft-light'; x.globalAlpha = clamp(rc.keyAmount * 0.85, 0, 1);
+      x.drawImage(lc, 0, 0, rw, rh, x0, y0, bw, bh); x.restore();
+    }
+  }
+  function corrected(p, rc) {
+    var key = JSON.stringify(rc);
+    p.corr = p.corr || {};
+    if (p.corr[key]) return p.corr[key];
+    var W = p.work.width, H = p.work.height, c = mk(W, H), x = c.getContext('2d', { willReadFrequently: true });
     x.drawImage(p.work, 0, 0);
+    toneMap(x, W, H, rc);
+    if (p.face) localRetouch(x, p, rc);
+    var keys = Object.keys(p.corr);
+    if (keys.length > 2) delete p.corr[keys[0]];
+    p.corr[key] = c;
+    return c;
+  }
+  function subjectFor(p, rc, warm) {
+    var key = st.softness + '|' + (warm ? 'w' : 'n') + '|' + JSON.stringify(rc);
+    if (p.subj && p.subj.key === key) return p.subj.canvas;
+    var W = p.work.width, H = p.work.height, src = corrected(p, rc);
+    var A = feather(p.alpha, st.softness, W, H);
+    // pull edge colors toward the subject so the old background does not fringe the outline
+    var S = mk(W, H), sx2 = S.getContext('2d');
+    sx2.drawImage(src, 0, 0); sx2.globalCompositeOperation = 'destination-in'; sx2.drawImage(A, 0, 0);
+    var E = upBlur(S, 10, W, H);
+    var A2 = mk(W, H), a2 = A2.getContext('2d');
+    a2.drawImage(A, 0, 0); a2.globalCompositeOperation = 'destination-in'; a2.drawImage(A, 0, 0);
+    var core = mk(W, H), cx2 = core.getContext('2d');
+    cx2.drawImage(src, 0, 0); cx2.globalCompositeOperation = 'destination-in'; cx2.drawImage(A2, 0, 0);
+    var c = mk(W, H), x = c.getContext('2d', { willReadFrequently: true });
+    for (var i = 0; i < 4; i++) x.drawImage(E, 0, 0);
+    x.drawImage(core, 0, 0);
+    x.globalCompositeOperation = 'destination-in'; x.drawImage(A, 0, 0);
+    x.globalCompositeOperation = 'source-over';
     if (warm) warmPixels(x, W, H, 0.7);
-    x.globalCompositeOperation = 'destination-in';
-    x.drawImage(feather(p.seg.alpha, st.softness, W, H), 0, 0);
     p.subj = { key: key, canvas: c };
     return c;
   }
-  function blurredFor(p) {
-    if (p.blur) return p.blur;
-    if (!p.seg) { p.blur = downBlur(p.work, 18); return p.blur; }
-    // clean plate: remove the person, then fill the hole from coarse to fine
-    var W = p.work.width, H = p.work.height;
-    var bg = mk(W / 4, H / 4), b = bg.getContext('2d');
-    b.imageSmoothingEnabled = true; b.imageSmoothingQuality = 'high';
-    b.drawImage(p.work, 0, 0, bg.width, bg.height);
-    b.globalCompositeOperation = 'destination-out';
-    var dd = Math.max(2, bg.width * 0.025);
-    [[0, 0], [dd, 0], [-dd, 0], [0, dd], [0, -dd], [dd, dd], [-dd, -dd], [dd, -dd], [-dd, dd]].forEach(function (o2) {
-      b.drawImage(p.seg.alpha, o2[0], o2[1], bg.width, bg.height);
-      b.drawImage(p.seg.alpha, o2[0], o2[1], bg.width, bg.height);
-    });
-    var T = mk(W / 18, H / 18), t = T.getContext('2d');
-    t.imageSmoothingEnabled = true; t.imageSmoothingQuality = 'high';
-    var one = mk(1, 1), o = one.getContext('2d'); o.drawImage(bg, 0, 0, 1, 1);
-    var av = o.getImageData(0, 0, 1, 1).data, al = av[3] / 255 || 1;
-    t.fillStyle = 'rgb(' + Math.round(av[0] / al) + ',' + Math.round(av[1] / al) + ',' + Math.round(av[2] / al) + ')';
-    if (!av[3]) t.fillStyle = '#5a4a3e';
-    t.fillRect(0, 0, T.width, T.height);
-    [8, 4, 2, 1].forEach(function (f) {
-      var tmp = mk(T.width / f, T.height / f), x = tmp.getContext('2d');
-      x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
-      x.drawImage(bg, 0, 0, tmp.width, tmp.height);
-      for (var k = 0; k < 4; k++) t.drawImage(tmp, 0, 0, T.width, T.height);
-    });
-    p.blur = T;
-    return p.blur;
+  function blurredFor(p, rc) {
+    var key = JSON.stringify(rc);
+    if (p.blur && p.blur.key === key) return p.blur.canvas;
+    var src = corrected(p, rc), out;
+    if (!p.alpha) out = downBlur(src, 18);
+    else {
+      // clean plate: remove the person, then fill the gap from coarse to fine
+      var W = p.work.width, H = p.work.height;
+      var bg = mk(W / 4, H / 4), b = bg.getContext('2d');
+      b.imageSmoothingEnabled = true; b.imageSmoothingQuality = 'high';
+      b.drawImage(src, 0, 0, bg.width, bg.height);
+      b.globalCompositeOperation = 'destination-out';
+      var dd = Math.max(2, bg.width * 0.025);
+      [[0, 0], [dd, 0], [-dd, 0], [0, dd], [0, -dd], [dd, dd], [-dd, -dd], [dd, -dd], [-dd, dd]].forEach(function (o2) {
+        b.drawImage(p.alpha, o2[0], o2[1], bg.width, bg.height);
+        b.drawImage(p.alpha, o2[0], o2[1], bg.width, bg.height);
+      });
+      out = mk(W / 18, H / 18);
+      var t = out.getContext('2d');
+      t.imageSmoothingEnabled = true; t.imageSmoothingQuality = 'high';
+      var one = mk(1, 1), o = one.getContext('2d', { willReadFrequently: true }); o.drawImage(bg, 0, 0, 1, 1);
+      var av = o.getImageData(0, 0, 1, 1).data, al = av[3] / 255;
+      t.fillStyle = av[3] ? 'rgb(' + Math.round(av[0] / al) + ',' + Math.round(av[1] / al) + ',' + Math.round(av[2] / al) + ')' : '#5a4a3e';
+      t.fillRect(0, 0, out.width, out.height);
+      [8, 4, 2, 1].forEach(function (f) {
+        var tmp = mk(out.width / f, out.height / f), tx = tmp.getContext('2d');
+        tx.imageSmoothingEnabled = true; tx.imageSmoothingQuality = 'high';
+        tx.drawImage(bg, 0, 0, tmp.width, tmp.height);
+        for (var j = 0; j < 4; j++) t.drawImage(tmp, 0, 0, out.width, out.height);
+      });
+    }
+    p.blur = { key: key, canvas: out };
+    return out;
   }
-  function geometry(p, W, H, crop, s0, cut) {
-    var a = (cut && p.seg) ? p.seg : (p.seg || fallbackAnchor(p));
+  function geometry(p, W, H, crop, s0, cut, ang) {
+    var a = anchorFor(p);
     var sw = p.work.width, sh = p.work.height;
     var s = (crop.head * W / a.headW) * s0.zoom;
-    if (!cut) s = Math.max(s, W / sw, H / sh);
+    if (!cut) s = Math.max(s, W / sw, H / sh) * (1 + 1.3 * Math.abs(Math.sin(ang)));
     var dx = W / 2 - a.cx * s + s0.offX * W;
     var dy = crop.eye * H - a.eyeY * s + s0.offY * H;
     if (!cut) {
@@ -954,6 +1288,13 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
       dy = H - a.bottom * s;
     }
     return { s: s, dx: dx, dy: dy, sw: sw, sh: sh, a: a, crop: crop };
+  }
+  function drawRot(ctx, img, g, ang) {
+    if (!ang) { ctx.drawImage(img, g.dx, g.dy, g.sw * g.s, g.sh * g.s); return; }
+    var px = g.dx + g.a.cx * g.s, py = g.dy + g.a.eyeY * g.s;
+    ctx.save(); ctx.translate(px, py); ctx.rotate(ang); ctx.translate(-px, -py);
+    ctx.drawImage(img, g.dx, g.dy, g.sw * g.s, g.sh * g.s);
+    ctx.restore();
   }
 
   // the single renderer used by the preview and every export size
@@ -965,34 +1306,42 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
     ctx.clearRect(0, 0, W, H);
     if (!p) { ctx.fillStyle = '#1A161C'; ctx.fillRect(0, 0, W, H); ctx.restore(); return; }
-    var cut = s0.mode === 'cutout' && !!p.seg;
-    var g = geometry(p, W, H, crop, s0, cut);
+    var before = !!s0.compare;
+    var rc = before ? NEUTRAL : s0.recipe;
+    var cut = !before && s0.mode === 'cutout' && !!p.alpha;
+    var ang = (!before && rc.straighten && p.face && Math.abs(p.face.roll) > 0.004 && Math.abs(p.face.roll) < 0.3) ? -p.face.roll : 0;
+    var g = geometry(p, W, H, crop, s0, cut, ang);
     if (cut) {
       if (s0.preview) checker(ctx, W, H);
-      else drawBackdrop(ctx, W, H, p, g, s0);
-      var subj = subjectFor(p, s0.backdrop === 'outdoor' && !s0.preview);
-      ctx.drawImage(subj, g.dx, g.dy, g.sw * g.s, g.sh * g.s);
+      else drawBackdrop(ctx, W, H, p, g, s0, rc);
+      drawRot(ctx, subjectFor(p, rc, s0.backdrop === 'outdoor' && !s0.preview), g, ang);
       if (!s0.preview && s0.backdrop === 'editorial') {
         grayPixels(ctx, W, H); vignette(ctx, W, H, 0.55); grain(ctx, W, H, 0.22);
       }
     } else {
-      ctx.drawImage(p.work, g.dx, g.dy, g.sw * g.s, g.sh * g.s);
-      if (s0.treatment === 'warm') warmPixels(ctx, W, H, 1);
-      else if (s0.treatment === 'editorial') { grayPixels(ctx, W, H); vignette(ctx, W, H, 0.55); grain(ctx, W, H, 0.22); }
-      else if (s0.treatment === 'vignette') vignette(ctx, W, H, 0.5);
+      if (ang) {
+        var b = blurredFor(p, rc), cs = Math.max(W / b.width, H / b.height);
+        ctx.drawImage(b, (W - b.width * cs) / 2, (H - b.height * cs) / 2, b.width * cs, b.height * cs);
+      }
+      drawRot(ctx, before ? p.work : corrected(p, rc), g, ang);
+      if (!before) {
+        if (s0.treatment === 'warm') warmPixels(ctx, W, H, 1);
+        else if (s0.treatment === 'editorial') { grayPixels(ctx, W, H); vignette(ctx, W, H, 0.55); grain(ctx, W, H, 0.22); }
+        else if (s0.treatment === 'vignette') vignette(ctx, W, H, 0.5);
+      }
     }
     ctx.restore();
   }
-  function drawBackdrop(ctx, W, H, p, g, s0) {
+  function drawBackdrop(ctx, W, H, p, g, s0, rc) {
     var bd = s0.backdrop, r = Math.hypot(W, H) * 0.62, grd;
     if (bd === 'studio') {
-      var t = STUDIO_TONES[s0.studioTone] || STUDIO_TONES[0];
+      var tones = studioTones(), t = tones.filter(function (x) { return x.key === s0.studioTone; })[0] || tones[0];
       grd = ctx.createRadialGradient(W * 0.5, H * 0.38, 0, W * 0.5, H * 0.45, r);
       grd.addColorStop(0, t.stops[0]); grd.addColorStop(0.55, t.stops[1]); grd.addColorStop(1, t.stops[2]);
       ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
       grain(ctx, W, H, 0.06);
     } else if (bd === 'office') {
-      var b = blurredFor(p);
+      var b = blurredFor(p, rc);
       var s = Math.max(g.s, W / g.sw, H / g.sh);
       var dx = clamp(W / 2 - g.a.cx * s + s0.offX * W, W - g.sw * s, 0);
       var dy = clamp(g.crop.eye * H - g.a.eyeY * s + s0.offY * H, H - g.sh * s, 0);
@@ -1016,9 +1365,158 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
       });
       grain(ctx, W, H, 0.05);
     } else {
-      var c = (SOLIDS[s0.solid] || SOLIDS[0]).c;
-      ctx.fillStyle = c; ctx.fillRect(0, 0, W, H);
+      var sl = solidList(), so = sl.filter(function (x) { return x.key === s0.solid; })[0] || sl[0];
+      ctx.fillStyle = so.c; ctx.fillRect(0, 0, W, H);
     }
+  }
+
+  // ---------- Claude art director ----------
+  var rtBusy = false, rtLast = null;
+  function cleanRecipe(o) {
+    var r = {};
+    Object.keys(RANGES).forEach(function (k) {
+      var v = Number(o && o[k]);
+      r[k] = isFinite(v) ? Math.round(clamp(v, RANGES[k][0], RANGES[k][1]) * 100) / 100 : NEUTRAL[k];
+    });
+    r.keySide = o && ['left', 'right', 'none'].indexOf(o.keySide) >= 0 ? o.keySide : 'none';
+    r.straighten = !(o && o.straighten === false);
+    return r;
+  }
+  function pushHistory() {
+    st.history.push(JSON.stringify({ recipe: st.recipe, backdrop: st.backdrop, studioTone: st.studioTone, solid: st.solid, customColor: st.customColor }));
+    if (st.history.length > 25) st.history.shift();
+  }
+  function undoRecipe() {
+    var h = st.history.pop(); if (!h) return;
+    var o = JSON.parse(h);
+    st.recipe = o.recipe; st.backdrop = o.backdrop; st.studioTone = o.studioTone; st.solid = o.solid; st.customColor = o.customColor;
+    invalidateExports(); renderStudioControls(); drawPreview();
+  }
+  function retouchPrompt(p, request) {
+    var idx = photos.indexOf(p), note = '';
+    if (crit && critMatches() && crit.photos[idx]) note = crit.photos[idx].note;
+    var lines = [
+      'exposure: -1 to 1, overall brightness in stops',
+      'contrast: -0.5 to 0.5',
+      'shadows: -1 to 1, positive lifts dark areas',
+      'highlights: -1 to 1, negative recovers bright areas',
+      'warmth: -1 to 1, positive is warmer',
+      'tint: -1 to 1, positive adds magenta, negative adds green',
+      'saturation: -0.5 to 0.5',
+      'skin: 0 to 1, edge preserving smoothing of facial skin only; above 0.5 starts to look plastic',
+      'underEye: 0 to 1, lifts shadows under the eyes',
+      'eyes: 0 to 1, brightens the eyes slightly',
+      'keySide: left, right, or none, the side of the image to add a soft key light from',
+      'keyAmount: 0 to 1, strength of that key light (it also deepens the far side slightly for shape)',
+      'straighten: true or false, level a tilted head',
+      'backdrop: one of studio, office, editorial, outdoor, solid',
+      'backdropColor: a hex color such as #3f4a5c used for the studio or solid backdrop, chosen to flatter the skin tone and clothing'
+    ];
+    var s = 'You are a professional portrait retoucher art directing an automatic editor for a headshot. You cannot paint pixels. You choose settings, and the editor applies them on the device to this exact photo using a face map and a person cutout.\n\n' +
+      'Settings (0 means no change):\n' + lines.join('\n') + '\n\n' +
+      'Goal: a natural, credible professional headshot that still looks exactly like this person. Fix the real problems you see, such as exposure, a color cast, flat or harsh light, shadows under the eyes, or a tilted head. Prefer subtle values. Never comment on or guess age, race, gender, body, attractiveness, or any personal trait.\n\n' +
+      (p.face ? 'Measured head tilt: ' + (p.face.roll * 180 / Math.PI).toFixed(1) + ' degrees.' : 'No face map is available for this photo, so skin, underEye, eyes, and the key light will have no effect.') +
+      (note ? ' Earlier critique of this photo: ' + note : '');
+    if (request) {
+      s += '\n\nCurrent settings: ' + JSON.stringify(Object.assign({}, st.recipe, { backdrop: st.backdrop, backdropColor: st.customColor || '' })) +
+        '\nThe person asks: ' + request.replace(/["\\]/g, '') + '\nAdjust the current settings to honor the request and keep everything else that still works.';
+    }
+    s += '\n\nReply with JSON only, no prose and no code fences, in exactly this shape:\n' +
+      '{"settings":{"exposure":0,"contrast":0,"shadows":0,"highlights":0,"warmth":0,"tint":0,"saturation":0,"skin":0,"underEye":0,"eyes":0,"keySide":"none","keyAmount":0,"straighten":true,"backdrop":"studio","backdropColor":"#3f4a5c"},"notes":["..."]}\n' +
+      'notes: one to five short plain sentences, each naming one change and why.';
+    return s;
+  }
+  function parseRetouch(text) {
+    var t = String(text || '').replace(/```(?:json)?/gi, '');
+    var a = t.indexOf('{'), b = t.lastIndexOf('}');
+    if (a < 0 || b <= a) throw kindErr('parse');
+    var o;
+    try { o = JSON.parse(t.slice(a, b + 1)); } catch (e) { throw kindErr('parse'); }
+    if (!o || typeof o.settings !== 'object' || !o.settings) throw kindErr('parse');
+    var se = o.settings;
+    var notes = Array.isArray(o.notes) ? o.notes.filter(function (n) { return typeof n === 'string' && n.trim(); }).slice(0, 5).map(function (n) { return n.trim().slice(0, 180); }) : [];
+    var bd = String(se.backdrop || '').toLowerCase();
+    var col = typeof se.backdropColor === 'string' && /^#[0-9a-f]{6}$/i.test(se.backdropColor.trim()) ? se.backdropColor.trim().toLowerCase() : '';
+    return { recipe: cleanRecipe(se), notes: notes, backdrop: ['studio', 'office', 'editorial', 'outdoor', 'solid'].indexOf(bd) >= 0 ? bd : '', color: col };
+  }
+  async function retouch(request) {
+    if (rtBusy) return;
+    var p = photos[st.chosen]; if (!p) return;
+    if (!window.AppKeys) { showRtErr('The key ring did not load. Check your connection and reload the page.', request); return; }
+    var key = await window.AppKeys.get();
+    if (!key) return;
+    var model = window.AppModels ? window.AppModels.id('sonnet') : '';
+    rtBusy = true; rtLast = request || null; renderRetouch();
+    $('rtStatus').textContent = request ? 'Claude is revising the retouch.' : 'Claude is studying this photo and choosing the retouch.';
+    show($('rtErr'), false);
+    try {
+      if (!model) throw kindErr('nomodel');
+      if (!p.faceTried) await analyze(p);
+      var content = [
+        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: p.b64 } },
+        { type: 'text', text: retouchPrompt(p, request) }
+      ];
+      var j = await callClaude(model, content, key, 1000);
+      var text = (j.content || []).filter(function (b) { return b.type === 'text'; }).map(function (b) { return b.text; }).join('\n').trim();
+      if (!text) throw kindErr('empty');
+      var res = parseRetouch(text);
+      if (photos[st.chosen] !== p) return;
+      pushHistory();
+      st.recipe = res.recipe;
+      if (res.color) { st.customColor = res.color; st.studioTone = 'custom'; st.solid = 'custom'; }
+      if (res.backdrop && !request) st.backdrop = res.backdrop;
+      else if (res.backdrop && /backdrop|background|color|colour/i.test(request)) st.backdrop = res.backdrop;
+      st.notes = res.notes;
+      invalidateExports();
+      $('rtStatus').textContent = request ? 'Revised. Hold Compare to see the original.' : 'Retouched. Hold Compare to see the original, or ask for changes.';
+      renderStudioControls(); drawPreview();
+    } catch (e) {
+      $('rtStatus').textContent = '';
+      showRtErr(errorText(e), request);
+    } finally {
+      rtBusy = false; renderRetouch();
+    }
+  }
+  function showRtErr(msg, request) { rtLast = request || null; $('rtErrMsg').textContent = msg; show($('rtErr'), true); }
+  function renderRetouch() {
+    var p = photos[st.chosen];
+    $('rtRun').disabled = rtBusy || !p;
+    $('rtRun').textContent = st.notes.length ? 'Retouch again from scratch' : 'Retouch with Claude';
+    $('rtSend').disabled = rtBusy || !p;
+    Array.prototype.forEach.call(document.querySelectorAll('#rtQuick .chip'), function (b) { b.disabled = rtBusy || !p; });
+    var ul = $('rtNotes'); clearChildren(ul);
+    st.notes.forEach(function (n) { var li = document.createElement('li'); li.textContent = n; ul.appendChild(li); });
+    show(ul, st.notes.length > 0);
+    var faceless = p && p.faceTried && !p.face;
+    $('rtFaceNote').textContent = faceless ? 'No face was mapped in this photo, so skin, eye, and key light settings have no effect here.' : '';
+    SLIDERS.forEach(function (sl) {
+      var inp = $('rs-' + sl[0]); if (!inp) return;
+      inp.value = String(st.recipe[sl[0]]);
+      $('ro-' + sl[0]).textContent = fmtSigned(st.recipe[sl[0]], sl[0]);
+    });
+    ['left', 'none', 'right'].forEach(function (s) { $('ks-' + s).setAttribute('aria-pressed', st.recipe.keySide === s ? 'true' : 'false'); });
+    $('rtStraight').checked = st.recipe.straighten;
+    $('rtUndo').disabled = !st.history.length;
+  }
+  function fmtSigned(v, k) {
+    if (RANGES[k][0] >= 0) return Math.round(v * 100) + '%';
+    return (v > 0 ? '+' : '') + v.toFixed(2);
+  }
+  function buildSliders() {
+    var box = $('rtSliders'); clearChildren(box);
+    SLIDERS.forEach(function (sl) {
+      var k = sl[0], row = document.createElement('div'); row.className = 'slider';
+      var lab = document.createElement('label'); lab.setAttribute('for', 'rs-' + k); lab.textContent = sl[1];
+      var inp = document.createElement('input'); inp.type = 'range'; inp.id = 'rs-' + k;
+      inp.min = String(RANGES[k][0]); inp.max = String(RANGES[k][1]); inp.step = '0.05'; inp.value = String(st.recipe[k]);
+      var out = document.createElement('output'); out.id = 'ro-' + k;
+      inp.addEventListener('input', function () { $('ro-' + k).textContent = fmtSigned(Number(inp.value), k); });
+      inp.addEventListener('change', function () {
+        pushHistory(); st.recipe = Object.assign({}, st.recipe); st.recipe[k] = Number(inp.value);
+        invalidateExports(); renderRetouch(); drawPreview();
+      });
+      row.appendChild(lab); row.appendChild(inp); row.appendChild(out); box.appendChild(row);
+    });
   }
 
   // ---------- Stage 3: studio ----------
@@ -1047,27 +1545,11 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   }
   async function ensureCutout() {
     var p = photos[st.chosen];
-    if (!p || st.mode !== 'cutout' || p.seg) { renderStudioControls(); drawPreview(); return; }
-    if (p.segFailed) { st.mode = 'none'; st.autoNone = true; renderStudioControls(); drawPreview(); return; }
-    var firstLoad = !seg.model;
-    setOverlay(firstLoad ? 'Loading the on device cutout. The first visit downloads about 15 MB, then it is cached.' : 'Cutting you out of the background');
-    try {
-      var model = await withTimeout(loadSegmenter(), SEG_TIMEOUT);
-      setOverlay('Cutting you out of the background');
-      await new Promise(function (r) { setTimeout(r, 30); });
-      if (photos[st.chosen] !== p) { setOverlay(''); return ensureCutout(); }
-      segmentPhoto(p, model);
-    } catch (e) {
-      if (e && e.kind === 'noperson') {
-        p.segFailed = true; st.autoNone = true;
-        toast('No person was found in this photo, so it is shown without a cutout.');
-      } else {
-        if (e && e.message === 'timeout') seg.lateNotice = true;
-        toast('The cutout could not load, so the Studio switched to No Cutout mode.');
-      }
-      st.mode = 'none';
-    }
+    if (!p) return;
+    if (p.noPerson && st.mode === 'cutout') { st.mode = 'none'; st.autoNone = true; }
+    await analyze(p);
     setOverlay('');
+    if (photos[st.chosen] !== p) return ensureCutout();
     renderStudioControls();
     drawPreview();
   }
@@ -1083,8 +1565,10 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
       b.addEventListener('click', function () {
         if (st.chosen === i) return;
         st.chosen = i; saveSession(); resetFraming(); invalidateExports();
-        if (st.autoNone && seg.model && !p.segFailed) { st.mode = 'cutout'; st.autoNone = false; }
-        renderStrip(); ensureCutout();
+        st.recipe = Object.assign({}, NEUTRAL); st.notes = []; st.history = [];
+        $('rtStatus').textContent = 'New photo. Retouch with Claude to tailor it.';
+        if (st.autoNone && !p.noPerson) { st.mode = 'cutout'; st.autoNone = false; }
+        renderStrip(); renderStudioControls(); ensureCutout();
       });
       s.appendChild(b);
     });
@@ -1103,35 +1587,40 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     $('modeNo').setAttribute('aria-pressed', cut ? 'false' : 'true');
     var p = photos[st.chosen];
     var msg = '';
-    if (seg.state === 'loading' && !seg.model) msg = 'The cutout is still loading in the background.';
-    else if (seg.state === 'failed' && !seg.model) msg = 'The cutout could not load here. Tap Cutout to try again.';
-    else if (p && p.segFailed) msg = 'No person was found in this photo. Try another photo for a cutout.';
-    else if (cut && p && p.seg) msg = 'Cutout ready. Everything runs on this device.';
+    if (vis.mattePromise && !vis.matte) msg = 'The cutout is still loading in the background.';
+    else if (vis.matteFailed && !vis.matte) msg = 'The cutout could not load here. Tap Cutout to try again.';
+    else if (p && p.noPerson) msg = 'No person was found in this photo. Try another photo for a cutout.';
+    else if (cut && p && p.alpha) msg = 'Cutout ready. Everything runs on this device.';
     $('segStatus').textContent = msg;
-    $('modeCut').disabled = !!(p && p.segFailed);
+    $('modeCut').disabled = !!(p && p.noPerson);
     show($('bdGroup'), cut); show($('trGroup'), !cut);
     show($('softRow'), cut); show($('prevRow'), cut);
     var suggested = (crit && critMatches()) ? crit.backdrop : '';
     var bc = $('bdChips'); clearChildren(bc);
     BACKDROPS.forEach(function (b) {
       bc.appendChild(chip(b.label, b.chip, st.backdrop === b.id, function () {
-        st.backdrop = b.id; invalidateExports(); renderStudioControls(); drawPreview();
+        pushHistory(); st.backdrop = b.id; invalidateExports(); renderStudioControls(); drawPreview();
       }, b.id === suggested ? 'sugg' : ''));
     });
     var tr = $('toneRow'); clearChildren(tr);
     if (st.backdrop === 'studio' || st.backdrop === 'solid') {
-      var list = st.backdrop === 'studio' ? STUDIO_TONES : SOLIDS;
-      list.forEach(function (t, i) {
+      var studio = st.backdrop === 'studio', list = studio ? studioTones() : solidList();
+      list.forEach(function (t) {
         var b = document.createElement('button'); b.type = 'button';
-        var on = st.backdrop === 'studio' ? st.studioTone === i : st.solid === i;
+        var on = studio ? st.studioTone === t.key : st.solid === t.key;
         b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.setAttribute('aria-label', t.name); b.title = t.name;
-        b.style.background = st.backdrop === 'studio' ? 'radial-gradient(circle at 50% 40%,' + t.stops[0] + ',' + t.stops[2] + ')' : t.c;
+        b.style.background = studio ? 'radial-gradient(circle at 50% 40%,' + t.stops[0] + ',' + t.stops[2] + ')' : t.c;
+        if (t.key === 'custom') b.className = 'mine';
         b.addEventListener('click', function () {
-          if (st.backdrop === 'studio') st.studioTone = i; else st.solid = i;
+          pushHistory();
+          if (studio) st.studioTone = t.key; else st.solid = t.key;
           invalidateExports(); renderStudioControls(); drawPreview();
         });
         tr.appendChild(b);
       });
+      if (!list.some(function (t) { return t.key === (studio ? st.studioTone : st.solid); })) {
+        if (studio) st.studioTone = list[0].key; else st.solid = list[0].key;
+      }
     }
     var tc = $('trChips'); clearChildren(tc);
     TREATMENTS.forEach(function (t) {
@@ -1141,6 +1630,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     });
     $('prevIn').checked = st.preview;
     $('softIn').value = String(st.softness); $('softOut').textContent = String(st.softness);
+    renderRetouch();
   }
   function setMode(m) {
     if (m === st.mode) return;
@@ -1288,6 +1778,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     disarmClear();
     photos.forEach(function (p) { URL.revokeObjectURL(p.thumb); });
     photos = []; crit = null; st.chosen = -1; st.backdrop = 'studio'; st.mode = 'cutout'; st.treatment = 'natural';
+    st.recipe = Object.assign({}, NEUTRAL); st.notes = []; st.history = []; st.customColor = ''; st.studioTone = 'Charcoal'; st.solid = 'White';
     role = ''; $('roleIn').value = '';
     $('headlineIn').value = ''; $('captionIn').value = '';
     dropKey(LS_SESSION); savePrefs(); invalidateExports();
@@ -1300,7 +1791,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   function init() {
     var pr = loadJSON(LS_PREFS);
     if (pr) {
-      if (isFinite(pr.softness)) prefs.softness = clamp(Math.round(pr.softness), 0, 10);
+      if (pr.v === 2 && isFinite(pr.softness)) prefs.softness = clamp(Math.round(pr.softness), 0, 10);
       if (typeof pr.role === 'string') role = pr.role.slice(0, 160);
     }
     st.softness = prefs.softness;
@@ -1331,7 +1822,10 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
       b.addEventListener('click', function () { copyText(b.getAttribute('data-copy'), b); });
     });
     $('toStudioBest').addEventListener('click', function () {
-      if (crit && critMatches()) { st.chosen = crit.best - 1; st.backdrop = crit.backdrop; resetFraming(); }
+      if (crit && critMatches()) {
+        if (st.chosen !== crit.best - 1) { st.recipe = Object.assign({}, NEUTRAL); st.notes = []; st.history = []; }
+        st.chosen = crit.best - 1; st.backdrop = crit.backdrop; resetFraming();
+      }
       go('studio');
     });
 
@@ -1350,6 +1844,33 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     $('toExport').addEventListener('click', function () { go('export'); });
     $('dlAll').addEventListener('click', function () { if (exportFiles) deliver(allFiles()); });
     bindDrag();
+    buildSliders();
+    QUICK.forEach(function (q) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = q;
+      b.addEventListener('click', function () { retouch(q); });
+      $('rtQuick').appendChild(b);
+    });
+    $('rtRun').addEventListener('click', function () { retouch(null); });
+    $('rtSend').addEventListener('click', function () { var v = $('rtInput').value.trim(); if (v) { retouch(v.slice(0, 200)); $('rtInput').value = ''; } });
+    $('rtInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('rtSend').click(); } });
+    $('rtRetry').addEventListener('click', function () { show($('rtErr'), false); retouch(rtLast); });
+    $('rtUndo').addEventListener('click', undoRecipe);
+    $('rtReset').addEventListener('click', function () { pushHistory(); st.recipe = Object.assign({}, NEUTRAL); st.notes = []; invalidateExports(); renderStudioControls(); drawPreview(); });
+    $('rtStraight').addEventListener('change', function () { pushHistory(); st.recipe = Object.assign({}, st.recipe, { straighten: $('rtStraight').checked }); invalidateExports(); drawPreview(); renderRetouch(); });
+    ['left', 'none', 'right'].forEach(function (sd) {
+      $('ks-' + sd).addEventListener('click', function () {
+        pushHistory(); st.recipe = Object.assign({}, st.recipe, { keySide: sd });
+        if (sd !== 'none' && !st.recipe.keyAmount) st.recipe.keyAmount = 0.4;
+        invalidateExports(); renderRetouch(); drawPreview();
+      });
+    });
+    var cmp = $('rtCompare');
+    var cmpOn = function (e) { e.preventDefault(); st.compare = true; drawPreview(); };
+    var cmpOff = function () { if (st.compare) { st.compare = false; drawPreview(); } };
+    cmp.addEventListener('pointerdown', cmpOn);
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (t) { cmp.addEventListener(t, cmpOff); });
+    cmp.addEventListener('keydown', function (e) { if (e.key === ' ' || e.key === 'Enter' || e.code === 'Space') cmpOn(e); });
+    cmp.addEventListener('keyup', cmpOff);
 
     $('gearBtn').addEventListener('click', openSettings);
     $('setClose').addEventListener('click', closeSettings);
